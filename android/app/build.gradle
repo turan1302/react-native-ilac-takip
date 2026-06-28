@@ -79,7 +79,7 @@ android {
 
     namespace "com.ilactakip"
     defaultConfig {
-        applicationId "com.ilactakip"
+        applicationId "com.mfbag.ilactakibi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

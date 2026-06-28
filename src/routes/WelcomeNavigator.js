@@ -5,7 +5,7 @@ import { View, Platform, Text } from 'react-native';
 import ProgramNavigator from './ProgramNavigator';
 import HomeNavigator from './HomeNavigator';
 import DailyNavigator from "./DailyNavigator";
-
+import SettingsNavigator from "./SettingsNavigator";
 
 const Tab = createBottomTabNavigator();
 
@@ -16,7 +16,8 @@ const TAB_BG_ACTIVE = '#CCFBF1';
 const TAB_CONFIG = {
   HomeNavigator: { label: 'Anasayfa', icon: 'home' },
   ProgramNavigator: { label: 'Program', icon: 'calendar' },
-  DailyNavigator : {label : 'Günlük',icon : 'check-circle'}
+  DailyNavigator : {label : 'Günlük',icon : 'check-circle'},
+  SettingsNavigator: { label: 'Ayarlar', icon: 'settings' },
 };
 
 const WelcomeNavigator = () => {
@@ -25,7 +26,7 @@ const WelcomeNavigator = () => {
       initialRouteName="HomeNavigator"
       screenOptions={({ route }) => {
         const routeName = getFocusedRouteNameFromRoute(route) ?? route.name;
-        const tabBarHidden = ['AddPill', 'EditPill'];
+        const tabBarHidden = ['AddPill', 'EditPill', 'LegalDocument'];
         const tabConfig = TAB_CONFIG[route.name];
 
         return {
@@ -107,6 +108,7 @@ const WelcomeNavigator = () => {
       <Tab.Screen name="HomeNavigator" component={HomeNavigator} />
       <Tab.Screen name="ProgramNavigator" component={ProgramNavigator} />
       <Tab.Screen name="DailyNavigator" component={DailyNavigator}/>
+      <Tab.Screen name="SettingsNavigator" component={SettingsNavigator}/>
     </Tab.Navigator>
   );
 };
