@@ -1,17 +1,13 @@
-import React, { useMemo, useRef, useState } from 'react';
-import {
-  View,
-  Text,
-  StatusBar,
-  FlatList,
-  TouchableOpacity,
-} from 'react-native';
+import React, { useRef, useState } from 'react';
+import { StatusBar } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import useDimensionChange from '../../hooks/useDimensionChange';
 import * as NavigationService from '../../common/NavigationService';
-import { createStyles } from './styles';
+import Footer from '../../components/OnBoard/Footer';
+import SkipButton from '../../components/OnBoard/SkipButton';
+import SlideCarousel from '../../components/OnBoard/SlideCarousel';
+import styles, { COLORS } from './styles';
 
 const ONBOARD_SHOW_KEY = 'onboard_show';
 
@@ -41,11 +37,6 @@ const SLIDES = [
 
 const OnBoard = () => {
   const { width, isLandscape } = useDimensionChange();
-  const styles = useMemo(
-    () => createStyles({ width, isLandscape }),
-    [width, isLandscape],
-  );
-
   const flatListRef = useRef(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
@@ -82,64 +73,32 @@ const OnBoard = () => {
     itemVisiblePercentThreshold: 50,
   }).current;
 
-  const renderSlide = ({ item }) => (
-    <View style={styles.slide}>
-      <View style={styles.iconWrapper}>
-        <MaterialCommunityIcons
-          name={item.icon}
-          size={isLandscape ? 48 : 64}
-          color="#0D9488"
-        />
-      </View>
-      <Text style={styles.title}>{item.title}</Text>
-      <Text style={styles.description}>{item.description}</Text>
-    </View>
-  );
-
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
-      {!isLastSlide && (
-        <TouchableOpacity style={styles.skipButton} onPress={handleSkip}>
-          <Text style={styles.skipText}>Atla</Text>
-        </TouchableOpacity>
-      )}
-
-      <FlatList
-        ref={flatListRef}
-        data={SLIDES}
-        renderItem={renderSlide}
-        keyExtractor={item => item.id}
-        horizontal
-        pagingEnabled
-        bounces={false}
-        showsHorizontalScrollIndicator={false}
-        onViewableItemsChanged={onViewableItemsChanged}
-        viewabilityConfig={viewabilityConfig}
-        getItemLayout={(_, index) => ({
-          length: width,
-          offset: width * index,
-          index,
-        })}
+      <SkipButton
+        visible={!isLastSlide}
+        isLandscape={isLandscape}
+        onPress={handleSkip}
       />
 
-      <View style={styles.footer}>
-        <View style={styles.dots}>
-          {SLIDES.map((slide, index) => (
-            <View
-              key={slide.id}
-              style={[styles.dot, index === activeIndex && styles.dotActive]}
-            />
-          ))}
-        </View>
+      <SlideCarousel
+        flatListRef={flatListRef}
+        slides={SLIDES}
+        width={width}
+        isLandscape={isLandscape}
+        onViewableItemsChanged={onViewableItemsChanged}
+        viewabilityConfig={viewabilityConfig}
+      />
 
-        <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-          <Text style={styles.nextButtonText}>
-            {isLastSlide ? 'Başla' : 'İleri'}
-          </Text>
-        </TouchableOpacity>
-      </View>
+      <Footer
+        slides={SLIDES}
+        activeIndex={activeIndex}
+        isLastSlide={isLastSlide}
+        isLandscape={isLandscape}
+        onNext={handleNext}
+      />
     </SafeAreaView>
   );
 };

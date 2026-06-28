@@ -7,6 +7,7 @@ import OnBoard from "../screens/OnBoard";
 import WelcomeNavigator from "./WelcomeNavigator";
 import AddPill from "../screens/Pills/AddPill";
 import EditPill from "../screens/Pills/EditPill";
+import Notifications from "../screens/Notifications";
 
 
 const Stack = createNativeStackNavigator();
@@ -28,6 +29,7 @@ const Routes = () => {
                 <Stack.Screen name={'OnBoard'} component={OnBoard} />
                 <Stack.Screen name={"AddPill"} component={AddPill} />
                 <Stack.Screen name={"EditPill"} component={EditPill} />
+                <Stack.Screen name={"Notifications"} component={Notifications} />
                 <Stack.Screen name={'WelcomeNavigator'} component={WelcomeNavigator} />
             </Stack.Navigator>
         </NavigationContainer>

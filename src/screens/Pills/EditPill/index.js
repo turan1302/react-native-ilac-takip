@@ -1,51 +1,34 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  View,
-  Text,
   ScrollView,
-  TouchableOpacity,
-  TextInput,
   StatusBar,
-  Modal,
   KeyboardAvoidingView,
   Platform,
-  ActivityIndicator,
   Alert,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Feather from 'react-native-vector-icons/Feather';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { Toast, ALERT_TYPE } from 'react-native-alert-notification';
 import { getPillById, updatePill, deletePill } from '../../../common/PillStorage';
 import { removeIntakeReportsForPill } from '../../../common/IntakeStorage';
-import styles, { COLORS } from '../AddPill/styles';
-
-const PILL_TYPES = [
-  'Tablet',
-  'Kapsül',
-  'Şurup',
-  'Enjeksiyon',
-  'Aerosol',
-  'Sprey',
-  'Krem',
-  'Gargara',
-];
-const FREQUENCIES = ['Her Gün', 'Haftalık', 'İhtiyaç Halinde'];
-const HOURS = Array.from({ length: 24 }, (_, i) =>
-  String(i).padStart(2, '0'),
-);
-const MINUTES = Array.from({ length: 60 }, (_, i) =>
-  String(i).padStart(2, '0'),
-);
-
-const parseTime = value => {
-  const [hour = '09', minute = '00'] = (value || '').split(':');
-  return {
-    hour: hour.padStart(2, '0'),
-    minute: minute.padStart(2, '0'),
-  };
-};
+import { removeDismissalsForPill } from '../../../common/InAppNotificationStorage';
+import { parseTime } from '../../../common/pillFormConstants';
+import {
+  cancelPillReminder,
+  schedulePillReminder,
+} from '../../../common/NotificationService';
+import DosageTypeRow from '../../../components/Pills/AddPill/DosageTypeRow';
+import FormActions from '../../../components/Pills/AddPill/FormActions';
+import FrequencyChips from '../../../components/Pills/AddPill/FrequencyChips';
+import NotesField from '../../../components/Pills/AddPill/NotesField';
+import PillNameField from '../../../components/Pills/AddPill/PillNameField';
+import TimePickerField from '../../../components/Pills/AddPill/TimePickerField';
+import TimePickerModal from '../../../components/Pills/AddPill/TimePickerModal';
+import TypePickerModal from '../../../components/Pills/AddPill/TypePickerModal';
+import Banner from '../../../components/Pills/EditPill/Banner';
+import Header from '../../../components/Pills/EditPill/Header';
+import LoadingState from '../../../components/Pills/EditPill/LoadingState';
+import styles, { COLORS } from './styles';
 
 const EditPill = () => {
   const navigation = useNavigation();
@@ -68,6 +51,7 @@ const EditPill = () => {
   const [deleting, setDeleting] = useState(false);
 
   const isAsNeeded = frequency === 'İhtiyaç Halinde';
+  const isBusy = saving || deleting;
 
   useEffect(() => {
     const loadPill = async () => {
@@ -112,6 +96,11 @@ const EditPill = () => {
     setTimeModalVisible(false);
   };
 
+  const handleTypeSelect = selectedType => {
+    setType(selectedType);
+    setTypeModalVisible(false);
+  };
+
   const handleNotesFocus = () => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated: true });
@@ -131,7 +120,7 @@ const EditPill = () => {
     try {
       setSaving(true);
 
-      await updatePill(pillId, {
+      const updatedPill = await updatePill(pillId, {
         name: name.trim(),
         dosage: dosage.trim(),
         type,
@@ -139,6 +128,8 @@ const EditPill = () => {
         time: isAsNeeded ? '' : time,
         notes: notes.trim(),
       });
+
+      await schedulePillReminder(updatedPill);
 
       Toast.show({
         type: ALERT_TYPE.SUCCESS,
@@ -176,6 +167,8 @@ const EditPill = () => {
               setDeleting(true);
               await deletePill(pillId);
               await removeIntakeReportsForPill(pillId);
+              await removeDismissalsForPill(pillId);
+              await cancelPillReminder(pillId);
 
               Toast.show({
                 type: ALERT_TYPE.SUCCESS,
@@ -200,11 +193,7 @@ const EditPill = () => {
   };
 
   if (loading) {
-    return (
-      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </SafeAreaView>
-    );
+    return <LoadingState />;
   }
 
   return (
@@ -224,278 +213,61 @@ const EditPill = () => {
           keyboardDismissMode="on-drag"
           automaticallyAdjustKeyboardInsets
         >
-          <View style={styles.header}>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleCancel}
-              activeOpacity={0.7}
-            >
-              <Feather name="arrow-left" size={24} color={COLORS.primary} />
-            </TouchableOpacity>
-            <Text style={styles.headerTitle}>İlaç Düzenle</Text>
-            <TouchableOpacity
-              style={styles.headerButton}
-              onPress={handleDelete}
-              activeOpacity={0.7}
-              disabled={deleting || saving}
-            >
-              <Feather name="trash-2" size={22} color="#EF4444" />
-            </TouchableOpacity>
-          </View>
+          <Header
+            onCancel={handleCancel}
+            onDelete={handleDelete}
+            disabled={isBusy}
+          />
 
-          <View style={styles.banner}>
-            <View style={styles.bannerImage} />
-            <View style={styles.bannerDecor} />
-            <View style={styles.bannerDecorSmall} />
-            <View style={styles.bannerOverlay}>
-              <Text style={styles.bannerText}>
-                İlaç bilgilerinizi güncelleyin.
-              </Text>
-            </View>
-          </View>
+          <Banner />
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>İlaç Adı</Text>
-            <View style={styles.inputWithIcon}>
-              <TextInput
-                style={styles.inputInner}
-                placeholder="Örn: Parol"
-                placeholderTextColor={COLORS.textMuted}
-                value={name}
-                onChangeText={setName}
-              />
-              <MaterialCommunityIcons
-                name="pill"
-                size={20}
-                color={COLORS.textMuted}
-              />
-            </View>
-          </View>
+          <PillNameField value={name} onChangeText={setName} />
 
-          <View style={[styles.row, styles.fieldGroup]}>
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Dozaj</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="500 mg"
-                placeholderTextColor={COLORS.textMuted}
-                value={dosage}
-                onChangeText={setDosage}
-              />
-            </View>
-            <View style={styles.rowItem}>
-              <Text style={styles.label}>Tür</Text>
-              <TouchableOpacity
-                style={styles.selectButton}
-                onPress={() => setTypeModalVisible(true)}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.selectText}>{type}</Text>
-                <Feather
-                  name="chevron-down"
-                  size={18}
-                  color={COLORS.textSecondary}
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
+          <DosageTypeRow
+            dosage={dosage}
+            type={type}
+            onDosageChange={setDosage}
+            onOpenTypePicker={() => setTypeModalVisible(true)}
+          />
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Sıklık</Text>
-            <View style={styles.chipsWrap}>
-              {FREQUENCIES.map(item => {
-                const isActive = frequency === item;
-
-                return (
-                  <TouchableOpacity
-                    key={item}
-                    style={[styles.chip, isActive && styles.chipActive]}
-                    onPress={() => setFrequency(item)}
-                    activeOpacity={0.7}
-                  >
-                    <Text
-                      style={[
-                        styles.chipText,
-                        isActive && styles.chipTextActive,
-                      ]}
-                    >
-                      {item}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
+          <FrequencyChips value={frequency} onChange={setFrequency} />
 
           {!isAsNeeded && (
-            <View style={styles.fieldGroup}>
-              <Text style={styles.label}>Saat Belirle</Text>
-              <TouchableOpacity
-                style={styles.timeBox}
-                onPress={openTimeModal}
-                activeOpacity={0.7}
-              >
-                <View style={styles.timeIconBox}>
-                  <Feather name="clock" size={20} color={COLORS.primary} />
-                </View>
-                <Text style={styles.timeText}>{time}</Text>
-                <Feather name="clock" size={18} color={COLORS.primary} />
-              </TouchableOpacity>
-            </View>
+            <TimePickerField time={time} onPress={openTimeModal} />
           )}
 
-          <View style={styles.fieldGroup}>
-            <Text style={styles.label}>Notlar (Opsiyonel)</Text>
-            <TextInput
-              style={styles.notesInput}
-              placeholder="Aç karnına içilmelidir..."
-              placeholderTextColor={COLORS.textMuted}
-              value={notes}
-              onChangeText={setNotes}
-              onFocus={handleNotesFocus}
-              multiline
-            />
-          </View>
+          <NotesField
+            value={notes}
+            onChangeText={setNotes}
+            onFocus={handleNotesFocus}
+          />
 
-          <TouchableOpacity
-            style={styles.saveButton}
-            onPress={handleSave}
-            activeOpacity={0.85}
-            disabled={saving || deleting}
-          >
-            <Feather name="check-circle" size={20} color={COLORS.white} />
-            <Text style={styles.saveButtonText}>Güncelle</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.cancelButton}
-            onPress={handleCancel}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.cancelButtonText}>Vazgeç</Text>
-          </TouchableOpacity>
+          <FormActions
+            saving={saving}
+            disabled={deleting}
+            saveLabel="Güncelle"
+            onSave={handleSave}
+            onCancel={handleCancel}
+          />
         </ScrollView>
       </KeyboardAvoidingView>
 
-      <Modal
+      <TypePickerModal
         visible={typeModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setTypeModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setTypeModalVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Tür Seçin</Text>
-              {PILL_TYPES.map(item => (
-                <TouchableOpacity
-                  key={item}
-                  style={styles.modalOption}
-                  onPress={() => {
-                    setType(item);
-                    setTypeModalVisible(false);
-                  }}
-                >
-                  <Text
-                    style={[
-                      styles.modalOptionText,
-                      type === item && styles.modalOptionTextActive,
-                    ]}
-                  >
-                    {item}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        selectedType={type}
+        onClose={() => setTypeModalVisible(false)}
+        onSelect={handleTypeSelect}
+      />
 
-      <Modal
+      <TimePickerModal
         visible={timeModalVisible}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setTimeModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setTimeModalVisible(false)}
-        >
-          <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Saat Seçin</Text>
-
-              <View style={styles.timePickerRow}>
-                <ScrollView
-                  style={styles.timePickerColumn}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {HOURS.map(hour => (
-                    <TouchableOpacity
-                      key={hour}
-                      style={[
-                        styles.timePickerItem,
-                        tempHour === hour && styles.timePickerItemActive,
-                      ]}
-                      onPress={() => setTempHour(hour)}
-                    >
-                      <Text
-                        style={[
-                          styles.timePickerItemText,
-                          tempHour === hour && styles.timePickerItemTextActive,
-                        ]}
-                      >
-                        {hour}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-
-                <Text style={styles.timePickerSeparator}>:</Text>
-
-                <ScrollView
-                  style={styles.timePickerColumn}
-                  showsVerticalScrollIndicator={false}
-                >
-                  {MINUTES.map(minute => (
-                    <TouchableOpacity
-                      key={minute}
-                      style={[
-                        styles.timePickerItem,
-                        tempMinute === minute && styles.timePickerItemActive,
-                      ]}
-                      onPress={() => setTempMinute(minute)}
-                    >
-                      <Text
-                        style={[
-                          styles.timePickerItemText,
-                          tempMinute === minute &&
-                            styles.timePickerItemTextActive,
-                        ]}
-                      >
-                        {minute}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              <TouchableOpacity
-                style={styles.modalConfirmButton}
-                onPress={confirmTime}
-                activeOpacity={0.85}
-              >
-                <Text style={styles.modalConfirmButtonText}>Tamam</Text>
-              </TouchableOpacity>
-            </View>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
+        tempHour={tempHour}
+        tempMinute={tempMinute}
+        onClose={() => setTimeModalVisible(false)}
+        onSelectHour={setTempHour}
+        onSelectMinute={setTempMinute}
+        onConfirm={confirmTime}
+      />
     </SafeAreaView>
   );
 };
