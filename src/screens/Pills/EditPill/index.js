@@ -25,7 +25,7 @@ import PillNameField from '../../../components/Pills/AddPill/PillNameField';
 import TimePickerField from '../../../components/Pills/AddPill/TimePickerField';
 import TimePickerModal from '../../../components/Pills/AddPill/TimePickerModal';
 import TypePickerModal from '../../../components/Pills/AddPill/TypePickerModal';
-import Banner from '../../../components/Pills/EditPill/Banner';
+import Banner from '../../../components/Pills/AddPill/Banner';
 import Header from '../../../components/Pills/EditPill/Header';
 import LoadingState from '../../../components/Pills/EditPill/LoadingState';
 import styles, { COLORS } from './styles';
@@ -219,7 +219,7 @@ const EditPill = () => {
             disabled={isBusy}
           />
 
-          <Banner />
+          <Banner text="İlaç bilgilerinizi güncelleyin." />
 
           <PillNameField value={name} onChangeText={setName} />
 

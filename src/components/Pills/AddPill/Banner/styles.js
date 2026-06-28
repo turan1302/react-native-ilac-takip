@@ -16,25 +16,6 @@ const styles = StyleSheet.create({
   },
   bannerImage: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#334155',
-  },
-  bannerDecor: {
-    position: 'absolute',
-    top: 24,
-    right: 24,
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  bannerDecorSmall: {
-    position: 'absolute',
-    top: 48,
-    right: 64,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.12)',
   },
   bannerOverlay: {
     padding: 16,

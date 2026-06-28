@@ -1,14 +1,17 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, Image } from 'react-native';
+import { PILL_FORM_BANNER_IMAGE } from '../../../../datas/bannerImages';
 import styles from './styles';
 
 const Banner = ({
   text = 'Yeni bir tedavi planı oluşturun.',
 }) => (
   <View style={styles.banner}>
-    <View style={styles.bannerImage} />
-    <View style={styles.bannerDecor} />
-    <View style={styles.bannerDecorSmall} />
+    <Image
+      source={{ uri: PILL_FORM_BANNER_IMAGE }}
+      style={styles.bannerImage}
+      resizeMode="cover"
+    />
     <View style={styles.bannerOverlay}>
       <Text style={styles.bannerText}>{text}</Text>
     </View>

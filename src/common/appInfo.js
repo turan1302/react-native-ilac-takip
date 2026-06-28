@@ -1,4 +1,4 @@
-const packageJson = require('../../package.json');
+import VersionNumber from 'react-native-version-number';
 
 export const APP_NAME = 'İlaç Takibi';
-export const APP_VERSION = packageJson.version;
+export const APP_VERSION = VersionNumber.appVersion;
