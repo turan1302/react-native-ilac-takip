@@ -66,11 +66,11 @@ const App = () => {
 
 
   return (
-      <AlertNotificationRoot theme='dark'>
-        <SafeAreaProvider>
-          <Routes />
-        </SafeAreaProvider>
-      </AlertNotificationRoot>
+    <AlertNotificationRoot theme='dark'>
+      <SafeAreaProvider>
+        <Routes />
+      </SafeAreaProvider>
+    </AlertNotificationRoot>
   )
 }
 
