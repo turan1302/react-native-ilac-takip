@@ -22,10 +22,15 @@ const Routes = () => {
                 screenOptions={{
                     headerShown: false,
                     gestureEnabled: true,
+                    fullScreenGestureEnabled: true,
                     animation: 'slide_from_right',
                 }}
             >
-                <Stack.Screen name={'Splash'} component={Splash} />
+                <Stack.Screen
+                    name={'Splash'}
+                    component={Splash}
+                    options={{ gestureEnabled: false, animation: 'fade' }}
+                />
                 <Stack.Screen name={'OnBoard'} component={OnBoard} />
                 <Stack.Screen name={"AddPill"} component={AddPill} />
                 <Stack.Screen name={"EditPill"} component={EditPill} />

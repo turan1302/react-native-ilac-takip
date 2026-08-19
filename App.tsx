@@ -1,20 +1,24 @@
 import React, { useEffect } from 'react'
-import { Alert } from 'react-native';
+import { Alert, Platform } from 'react-native';
 import Routes from "./src/routes";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { AlertNotificationRoot, Toast } from "react-native-alert-notification";
+import { AlertNotificationRoot } from "react-native-alert-notification";
 import ImmersiveMode from "react-native-immersive-mode";
 import {
+  getPermissionAlertCopy,
   initializeNotifications,
   openBackgroundReminderSettings,
+  openReminderPermissionSettings,
   rescheduleAllReminders,
 } from './src/common/NotificationService';
 
 const App = () => {
 
   useEffect(() => {
-    ImmersiveMode.setBarMode("FullSticky");
-    ImmersiveMode.setBarTranslucent(true);
+    if (Platform.OS === 'android') {
+      ImmersiveMode.setBarMode("FullSticky");
+      ImmersiveMode.setBarTranslucent(true);
+    }
   }, []);
 
   useEffect(() => {
@@ -24,14 +28,15 @@ const App = () => {
         const scheduleResult = await rescheduleAllReminders();
 
         if (!permissionResult.notificationsGranted) {
+          const copy = getPermissionAlertCopy('notifications');
           Alert.alert(
-            'Bildirim İzni Gerekli',
-            'İlaç hatırlatmaları için bildirim iznine ihtiyacımız var. Lütfen izin verin.',
+            copy.title,
+            copy.message,
             [
               { text: 'Sonra', style: 'cancel' },
               {
                 text: 'Ayarlara Git',
-                onPress: () => openBackgroundReminderSettings(),
+                onPress: () => openReminderPermissionSettings(),
               },
             ],
           );
@@ -39,9 +44,10 @@ const App = () => {
         }
 
         if (!permissionResult.alarmGranted) {
+          const copy = getPermissionAlertCopy('background');
           Alert.alert(
-            'Arka Plan Hatırlatıcı İzni',
-            'Uygulama kapalıyken bildirim almak için izinleri açmanız gerekir. Listede görünmüyorsa önce bir ilaç ekleyin, ardından açılan ayarlardan pil ve otomatik başlatma izinlerini verin.',
+            copy.title,
+            copy.message,
             [
               { text: 'Sonra', style: 'cancel' },
               {

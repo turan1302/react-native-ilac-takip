@@ -4,7 +4,7 @@ import styles from './styles';
 
 const SplashIntro = () => (
   <>
-    <Text style={styles.title}>İlaç Takip</Text>
+    <Text style={styles.title}>İlaç Takibi</Text>
     <Text style={styles.subtitle}>
       İlaçlarınızı kaydedin, dozajlarınızı ayarlayın ve zamanında alın.
     </Text>

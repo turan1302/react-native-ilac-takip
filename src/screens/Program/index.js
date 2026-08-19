@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StatusBar, Alert } from 'react-native';
+import { ScrollView, StatusBar, Alert, Platform } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPills } from '../../common/PillStorage';
@@ -15,8 +15,11 @@ import {
 import {
   cancelAllReminders,
   ensureNotificationPermissions,
+  getBackgroundSetupCardCopy,
+  getPermissionAlertCopy,
   getReminderSetupStatus,
   openBackgroundReminderSettings,
+  openReminderPermissionSettings,
   rescheduleAllReminders,
 } from '../../common/NotificationService';
 import {
@@ -130,32 +133,26 @@ const Program = () => {
       const permissionResult = await ensureNotificationPermissions();
 
       if (!permissionResult.notificationsGranted) {
-        Alert.alert(
-          'Bildirim İzni Gerekli',
-          'Hatırlatıcıları açmak için bildirim iznine ihtiyacımız var.',
-          [
-            { text: 'İptal', style: 'cancel' },
-            {
-              text: 'Ayarlara Git',
-              onPress: () => openBackgroundReminderSettings(),
-            },
-          ],
-        );
+        const copy = getPermissionAlertCopy('notifications');
+        Alert.alert(copy.title, copy.message, [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Ayarlara Git',
+            onPress: () => openReminderPermissionSettings(),
+          },
+        ]);
         return;
       }
 
       if (!permissionResult.alarmGranted) {
-        Alert.alert(
-          'Arka Plan Hatırlatıcı İzni',
-          'Uygulama kapalıyken bildirim için pil tasarrufu ve otomatik başlatma izinlerini açın. "Alarmlar ve hatırlatıcılar" listesinde görünmüyorsa önce ilaç ekleyip hatırlatıcıyı açın.',
-          [
-            { text: 'Devam Et', style: 'cancel' },
-            {
-              text: 'Ayarlara Git',
-              onPress: () => openBackgroundReminderSettings(),
-            },
-          ],
-        );
+        const copy = getPermissionAlertCopy('background');
+        Alert.alert(copy.title, copy.message, [
+          { text: 'Devam Et', style: 'cancel' },
+          {
+            text: 'Ayarlara Git',
+            onPress: () => openBackgroundReminderSettings(),
+          },
+        ]);
       }
     }
 
@@ -170,17 +167,17 @@ const Program = () => {
   };
 
   const handleOpenBackgroundSettings = () => {
-    Alert.alert(
-      'Arka Plan İzinleri',
-      'Sırasıyla açılan ekranlarda:\n\n1. Alarmlar ve hatırlatıcılar → İlaç Takibi\'ni açın (listede yoksa ilaç ekleyip uygulamayı yeniden açın)\n2. Pil tasarrufu → Kısıtlama yok\n3. Otomatik başlatma → Açık (Xiaomi/Redmi)',
-      [
-        { text: 'İptal', style: 'cancel' },
-        {
-          text: 'Ayarlara Git',
-          onPress: () => openBackgroundReminderSettings(),
-        },
-      ],
-    );
+    const copy = getPermissionAlertCopy('setup');
+    Alert.alert(copy.title, copy.message, [
+      { text: 'İptal', style: 'cancel' },
+      {
+        text: 'Ayarlara Git',
+        onPress: () =>
+          Platform.OS === 'ios'
+            ? openReminderPermissionSettings()
+            : openBackgroundReminderSettings(),
+      },
+    ]);
   };
 
   const handleEditPill = item => {
@@ -221,7 +218,10 @@ const Program = () => {
         />
 
         {needsBackgroundSetup && remindersEnabled && (
-          <BackgroundSetupCard onPress={handleOpenBackgroundSettings} />
+          <BackgroundSetupCard
+            {...getBackgroundSetupCardCopy()}
+            onPress={handleOpenBackgroundSettings}
+          />
         )}
 
         {!hasPills ? (

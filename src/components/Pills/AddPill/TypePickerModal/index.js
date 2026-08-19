@@ -5,6 +5,7 @@ import {
   Modal,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PILL_TYPES } from '../../../../common/pillFormConstants';
 import styles from './styles';
 
@@ -13,7 +14,10 @@ const TypePickerModal = ({
   selectedType,
   onClose,
   onSelect,
-}) => (
+}) => {
+  const insets = useSafeAreaInsets();
+
+  return (
   <Modal
     visible={visible}
     transparent
@@ -26,7 +30,7 @@ const TypePickerModal = ({
       onPress={onClose}
     >
       <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: 32 + insets.bottom }]}>
           <Text style={styles.modalTitle}>Tür Seçin</Text>
           {PILL_TYPES.map(item => (
             <TouchableOpacity
@@ -48,6 +52,7 @@ const TypePickerModal = ({
       </TouchableOpacity>
     </TouchableOpacity>
   </Modal>
-);
+  );
+};
 
 export default TypePickerModal;

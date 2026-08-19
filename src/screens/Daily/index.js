@@ -184,8 +184,8 @@ const Daily = () => {
 
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'padding'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : -20}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -193,7 +193,7 @@ const Daily = () => {
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           onScrollBeginDrag={handleScrollBeginDrag}
-          automaticallyAdjustKeyboardInsets
+          automaticallyAdjustKeyboardInsets={false}
         >
           <Header
             searchVisible={searchVisible}

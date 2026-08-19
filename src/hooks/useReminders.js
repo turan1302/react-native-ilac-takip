@@ -7,7 +7,9 @@ import {
 import {
   cancelAllReminders,
   ensureNotificationPermissions,
+  getPermissionAlertCopy,
   openBackgroundReminderSettings,
+  openReminderPermissionSettings,
   rescheduleAllReminders,
 } from '../common/NotificationService';
 
@@ -26,32 +28,26 @@ const useReminders = () => {
       const permissionResult = await ensureNotificationPermissions();
 
       if (!permissionResult.notificationsGranted) {
-        Alert.alert(
-          'Bildirim İzni Gerekli',
-          'Hatırlatıcıları açmak için bildirim iznine ihtiyacımız var.',
-          [
-            { text: 'İptal', style: 'cancel' },
-            {
-              text: 'Ayarlara Git',
-              onPress: () => openBackgroundReminderSettings(),
-            },
-          ],
-        );
+        const copy = getPermissionAlertCopy('notifications');
+        Alert.alert(copy.title, copy.message, [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Ayarlara Git',
+            onPress: () => openReminderPermissionSettings(),
+          },
+        ]);
         return;
       }
 
       if (!permissionResult.alarmGranted) {
-        Alert.alert(
-          'Arka Plan Hatırlatıcı İzni',
-          'Uygulama kapalıyken bildirim için pil tasarrufu ve otomatik başlatma izinlerini açın.',
-          [
-            { text: 'Devam Et', style: 'cancel' },
-            {
-              text: 'Ayarlara Git',
-              onPress: () => openBackgroundReminderSettings(),
-            },
-          ],
-        );
+        const copy = getPermissionAlertCopy('background');
+        Alert.alert(copy.title, copy.message, [
+          { text: 'Devam Et', style: 'cancel' },
+          {
+            text: 'Ayarlara Git',
+            onPress: () => openBackgroundReminderSettings(),
+          },
+        ]);
       }
     }
 

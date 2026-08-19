@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import Feather from 'react-native-vector-icons/Feather';
 import { View, Platform, Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ProgramNavigator from './ProgramNavigator';
 import HomeNavigator from './HomeNavigator';
 import DailyNavigator from "./DailyNavigator";
@@ -21,6 +22,10 @@ const TAB_CONFIG = {
 };
 
 const WelcomeNavigator = () => {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 10);
+  const tabBarHeight = 56 + bottomInset;
+
   return (
     <Tab.Navigator
       initialRouteName="HomeNavigator"
@@ -35,6 +40,7 @@ const WelcomeNavigator = () => {
           tabBarHideOnKeyboard: true,
           tabBarActiveTintColor: TAB_COLOR_ACTIVE,
           tabBarInactiveTintColor: TAB_COLOR_INACTIVE,
+          safeAreaInsets: { bottom: 0 },
           tabBarLabel: ({ focused, color }) =>
             focused ? null : (
               <Text
@@ -89,9 +95,9 @@ const WelcomeNavigator = () => {
                 borderTopLeftRadius: 16,
                 borderTopRightRadius: 16,
                 borderWidth: 1,
-                height: Platform.OS === 'ios' ? 88 : 72,
+                height: tabBarHeight,
                 paddingTop: 8,
-                paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+                paddingBottom: bottomInset,
                 paddingHorizontal: 8,
                 elevation: 0,
                 shadowColor: '#000',

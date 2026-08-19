@@ -121,9 +121,60 @@ const buildNotification = pill => ({
   },
   ios: {
     sound: 'default',
-    interruptionLevel: 'timeSensitive',
+    interruptionLevel: 'active',
+    foregroundPresentationOptions: {
+      badge: true,
+      sound: true,
+      banner: true,
+      list: true,
+    },
   },
 });
+
+const isNotificationAuthorized = authorizationStatus =>
+  authorizationStatus === AuthorizationStatus.AUTHORIZED ||
+  authorizationStatus === AuthorizationStatus.PROVISIONAL ||
+  authorizationStatus === AuthorizationStatus.EPHEMERAL;
+
+export const getPermissionAlertCopy = kind => {
+  const isIOS = Platform.OS === 'ios';
+
+  if (kind === 'notifications') {
+    return {
+      title: 'Bildirim İzni Gerekli',
+      message: isIOS
+        ? 'İlaç hatırlatmaları için bildirim iznine ihtiyacımız var. Ayarlar > Bildirimler > İlaç Takibi üzerinden izin verebilirsiniz.'
+        : 'İlaç hatırlatmaları için bildirim iznine ihtiyacımız var. Lütfen izin verin.',
+    };
+  }
+
+  if (kind === 'background') {
+    return {
+      title: isIOS ? 'Bildirim İzni' : 'Arka Plan Hatırlatıcı İzni',
+      message: isIOS
+        ? 'Uygulama kapalıyken hatırlatma almak için Ayarlar > Bildirimler > İlaç Takibi yolundan bildirimleri açık tutun.'
+        : 'Uygulama kapalıyken bildirim almak için izinleri açmanız gerekir. Listede görünmüyorsa önce bir ilaç ekleyin, ardından açılan ayarlardan pil ve otomatik başlatma izinlerini verin.',
+    };
+  }
+
+  return {
+    title: isIOS ? 'Bildirim Ayarları' : 'Arka Plan İzinleri',
+    message: isIOS
+      ? 'Açılan ekranda Bildirimler’i açın. Böylece uygulama kapalıyken de ilaç hatırlatmaları gelir.'
+      : 'Sırasıyla açılan ekranlarda:\n\n1. Alarmlar ve hatırlatıcılar → İlaç Takibi\'ni açın (listede yoksa ilaç ekleyip uygulamayı yeniden açın)\n2. Pil tasarrufu → Kısıtlama yok\n3. Otomatik başlatma → Açık (Xiaomi/Redmi)',
+  };
+};
+
+export const getBackgroundSetupCardCopy = () =>
+  Platform.OS === 'ios'
+    ? {
+        title: 'Bildirim izni gerekli',
+        subtitle: 'Hatırlatıcılar için Ayarlar’dan bildirimleri açın',
+      }
+    : {
+        title: 'Arka plan izinleri gerekli',
+        subtitle: 'Uygulama kapalıyken bildirim almak için ayarları yapın',
+      };
 
 const requestAndroidNotificationPermission = async () => {
   if (Platform.OS !== 'android' || Platform.Version < 33) {
@@ -139,7 +190,7 @@ const requestAndroidNotificationPermission = async () => {
 
 export const hasNotificationPermission = async () => {
   const settings = await notifee.getNotificationSettings();
-  return settings.authorizationStatus !== AuthorizationStatus.DENIED;
+  return isNotificationAuthorized(settings.authorizationStatus);
 };
 
 export const canUseExactAlarm = async () => {
@@ -154,9 +205,14 @@ export const canUseExactAlarm = async () => {
 export const ensureNotificationPermissions = async () => {
   await requestAndroidNotificationPermission();
 
-  const settings = await notifee.requestPermission();
-  const notificationsGranted =
-    settings.authorizationStatus !== AuthorizationStatus.DENIED;
+  const settings = await notifee.requestPermission({
+    alert: true,
+    badge: true,
+    sound: true,
+  });
+  const notificationsGranted = isNotificationAuthorized(
+    settings.authorizationStatus,
+  );
 
   let alarmGranted = true;
 
@@ -170,6 +226,11 @@ export const ensureNotificationPermissions = async () => {
 };
 
 export const openReminderPermissionSettings = async () => {
+  if (Platform.OS === 'ios') {
+    await notifee.openNotificationSettings();
+    return;
+  }
+
   await notifee.openNotificationSettings(CHANNEL_ID);
 };
 
@@ -250,7 +311,9 @@ export const getReminderSetupStatus = async () => {
     hasPowerManagerSettings,
     batteryOptimizationEnabled,
     needsBackgroundSetup:
-      !notificationsGranted || !alarmGranted || batteryOptimizationEnabled,
+      Platform.OS === 'ios'
+        ? !notificationsGranted
+        : !notificationsGranted || !alarmGranted || batteryOptimizationEnabled,
   };
 };
 

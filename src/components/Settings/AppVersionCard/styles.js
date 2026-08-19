@@ -22,15 +22,10 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     gap: 12,
   },
-  iconWrapper: {
+  iconImage: {
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: COLORS.cardBg,
-    borderWidth: 1,
-    borderColor: COLORS.cardBorder,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   info: {
     flex: 1,

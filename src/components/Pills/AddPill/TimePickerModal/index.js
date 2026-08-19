@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { HOURS, MINUTES } from '../../../../common/pillFormConstants';
 import styles from './styles';
 
@@ -17,7 +18,10 @@ const TimePickerModal = ({
   onSelectHour,
   onSelectMinute,
   onConfirm,
-}) => (
+}) => {
+  const insets = useSafeAreaInsets();
+
+  return (
   <Modal
     visible={visible}
     transparent
@@ -30,7 +34,7 @@ const TimePickerModal = ({
       onPress={onClose}
     >
       <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: 32 + insets.bottom }]}>
           <Text style={styles.modalTitle}>Saat Seçin</Text>
 
           <View style={styles.timePickerRow}>
@@ -98,6 +102,7 @@ const TimePickerModal = ({
       </TouchableOpacity>
     </TouchableOpacity>
   </Modal>
-);
+  );
+};
 
 export default TimePickerModal;

@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MONTH_NAMES } from '../../../common/dailyHelpers';
 import styles from './styles';
 
@@ -22,7 +23,10 @@ const DatePickerModal = ({
   onSelectYear,
   onGoToToday,
   onConfirm,
-}) => (
+}) => {
+  const insets = useSafeAreaInsets();
+
+  return (
   <Modal
     visible={visible}
     transparent
@@ -35,7 +39,7 @@ const DatePickerModal = ({
       onPress={onClose}
     >
       <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-        <View style={styles.modalContent}>
+        <View style={[styles.modalContent, { paddingBottom: 32 + insets.bottom }]}>
           <Text style={styles.modalTitle}>Tarih Seçin</Text>
 
           <TouchableOpacity style={styles.todayButton} onPress={onGoToToday}>
@@ -135,6 +139,7 @@ const DatePickerModal = ({
       </TouchableOpacity>
     </TouchableOpacity>
   </Modal>
-);
+  );
+};
 
 export default DatePickerModal;

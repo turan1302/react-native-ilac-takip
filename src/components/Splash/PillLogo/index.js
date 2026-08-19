@@ -1,14 +1,10 @@
 import React from 'react';
-import { View } from 'react-native';
+import { Image } from 'react-native';
+import appIcon from '../../../assets/branding/app-icon.png';
 import styles from './styles';
 
 const PillLogo = () => (
-  <View style={styles.iconWrapper}>
-    <View style={styles.pill}>
-      <View style={[styles.pillHalf, styles.pillHalfLeft]} />
-      <View style={[styles.pillHalf, styles.pillHalfRight]} />
-    </View>
-  </View>
+  <Image source={appIcon} style={styles.logo} accessibilityLabel="İlaç Takibi" />
 );
 
 export default PillLogo;
