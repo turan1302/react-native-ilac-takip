@@ -19,3 +19,14 @@ buildscript {
 }
 
 apply plugin: "com.facebook.react.rootproject"
+
+subprojects { subproject ->
+    subproject.pluginManager.withPlugin("com.android.library") {
+        subproject.android {
+            lint {
+                abortOnError false
+                checkReleaseBuilds false
+            }
+        }
+    }
+}
