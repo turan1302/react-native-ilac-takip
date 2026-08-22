@@ -1,4 +1,5 @@
-import { getPills } from './PillStorage';
+import { getPillsForProfile } from './PillStorage';
+import { getActiveProfileId } from './ProfileStorage';
 import { getTakenPillIdsForDate, getTodayDateKey } from './IntakeStorage';
 import { getDismissedPillIdsForDate } from './InAppNotificationStorage';
 import { buildPillSections } from './pillHelpers';
@@ -33,7 +34,8 @@ export const isPastScheduledTime = (timeStr, dateKey) => {
 export const getMissedNotifications = async (
   dateKey = getTodayDateKey(),
 ) => {
-  const pills = await getPills();
+  const profileId = await getActiveProfileId();
+  const pills = await getPillsForProfile(profileId);
   const takenIds = await getTakenPillIdsForDate(dateKey);
   const dismissedIds = await getDismissedPillIdsForDate(dateKey);
 

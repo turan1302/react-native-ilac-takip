@@ -4,12 +4,11 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useDimensionChange from '../../hooks/useDimensionChange';
 import * as NavigationService from '../../common/NavigationService';
+import { ONBOARD_SHOW_KEY } from '../../common/storage/keys';
 import Footer from '../../components/OnBoard/Footer';
 import SkipButton from '../../components/OnBoard/SkipButton';
 import SlideCarousel from '../../components/OnBoard/SlideCarousel';
 import styles, { COLORS } from './styles';
-
-const ONBOARD_SHOW_KEY = 'onboard_show';
 
 const SLIDES = [
   {

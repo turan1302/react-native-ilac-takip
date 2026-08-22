@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import NotificationBell from '../../NotificationBell';
+import ProfileSwitcher from '../../shared/ProfileSwitcher';
 import styles from './styles';
 
 const Header = () => (
@@ -15,7 +16,10 @@ const Header = () => (
         Takibi
       </Text>
     </View>
-    <NotificationBell buttonStyle={styles.notificationButton} />
+    <View style={styles.headerActions}>
+      <ProfileSwitcher />
+      <NotificationBell buttonStyle={styles.notificationButton} />
+    </View>
   </View>
 );
 

@@ -8,12 +8,14 @@ import {
 } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getPills } from '../../common/PillStorage';
+import { getPillsForProfile } from '../../common/PillStorage';
 import {
   getIntakeMapForDate,
+  getTakenDoseKeysForDate,
   getTodayDateKey,
-  togglePillIntake,
 } from '../../common/IntakeStorage';
+import { useProfile } from '../../common/ProfileContext';
+import useDoseActions from '../../hooks/useDoseActions';
 import {
   buildDateKey,
   buildPillSections,
@@ -27,6 +29,8 @@ import {
   filterSectionsByQuery,
 } from '../../common/dailyHelpers';
 import useDebounce from '../../hooks/useDebounce';
+import useRevealOnFocus from '../../hooks/useRevealOnFocus';
+import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import CalendarStrip from '../../components/Daily/CalendarStrip';
 import DatePickerModal from '../../components/Daily/DatePickerModal';
 import EmptyState from '../../components/Daily/EmptyState';
@@ -41,6 +45,7 @@ import styles, { COLORS } from './styles';
 
 const Daily = () => {
   const navigation = useNavigation();
+  const { activeProfileId } = useProfile();
   const [weekDays, setWeekDays] = useState(getWeekDaysForDate(getTodayDateKey()));
   const [sections, setSections] = useState([]);
   const [asNeededSection, setAsNeededSection] = useState(null);
@@ -59,13 +64,9 @@ const Daily = () => {
   );
 
   const loadData = useCallback(async () => {
-    const pills = await getPills();
+    const pills = await getPillsForProfile(activeProfileId);
     const map = await getIntakeMapForDate(selectedDate);
-    const takenIds = new Set(
-      [...map.values()]
-        .filter(report => report.taken)
-        .map(report => report.pillId),
-    );
+    const takenIds = await getTakenDoseKeysForDate(selectedDate);
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
       pills,
       COLORS,
@@ -83,7 +84,7 @@ const Daily = () => {
     setAsNeededSection(asNeeded);
     setIntakeMap(map);
     setWeeklyCompliance(compliance);
-  }, [selectedDate]);
+  }, [selectedDate, activeProfileId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -97,9 +98,14 @@ const Daily = () => {
     return [...scheduled, ...asNeeded];
   }, [sections, asNeededSection]);
 
-  const takenCount = allItems.filter(
-    item => intakeMap.get(item.pill.id)?.taken,
-  ).length;
+  const { takeDose, skipDose, snoozeDose } = useDoseActions(
+    selectedDate,
+    loadData,
+  );
+  const revealKey = useRevealOnFocus();
+  const listRevealKey = `${revealKey}-${selectedDate}-${debouncedSearch}`;
+
+  const takenCount = allItems.filter(item => item.isTaken).length;
   const totalCount = allItems.length;
   const todayCompliance =
     totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 0;
@@ -139,11 +145,6 @@ const Daily = () => {
 
   const handleClearSearch = () => {
     setSearchQuery('');
-  };
-
-  const handleTake = async item => {
-    await togglePillIntake(item.pill, selectedDate, true);
-    await loadData();
   };
 
   const handleEditPill = item => {
@@ -195,48 +196,66 @@ const Daily = () => {
           onScrollBeginDrag={handleScrollBeginDrag}
           automaticallyAdjustKeyboardInsets={false}
         >
-          <Header
-            searchVisible={searchVisible}
-            onToggleSearch={handleToggleSearch}
-          />
+          <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
+            <Header
+              searchVisible={searchVisible}
+              onToggleSearch={handleToggleSearch}
+            />
+          </AnimatedReveal>
 
           {searchVisible && (
-            <SearchBar
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              isDebouncing={isDebouncing}
-              onClear={handleClearSearch}
-            />
+            <AnimatedReveal index={1} animationKey={`${revealKey}-search`}>
+              <SearchBar
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                isDebouncing={isDebouncing}
+                onClear={handleClearSearch}
+              />
+            </AnimatedReveal>
           )}
 
-          <PageIntro />
+          <AnimatedReveal index={2} animationKey={revealKey}>
+            <PageIntro />
+          </AnimatedReveal>
 
-          <StatsRow
-            todayCompliance={todayCompliance}
-            takenCount={takenCount}
-          />
+          <AnimatedReveal index={3} animationKey={revealKey}>
+            <StatsRow
+              todayCompliance={todayCompliance}
+              takenCount={takenCount}
+            />
+          </AnimatedReveal>
 
-          <CalendarStrip
-            selectedDate={selectedDate}
-            weekDays={weekDays}
-            onSelectDay={handleSelectDay}
-            onOpenCalendar={openDateModal}
-          />
+          <AnimatedReveal index={4} animationKey={revealKey}>
+            <CalendarStrip
+              selectedDate={selectedDate}
+              weekDays={weekDays}
+              onSelectDay={handleSelectDay}
+              onOpenCalendar={openDateModal}
+            />
+          </AnimatedReveal>
 
           {!hasPills ? (
-            <EmptyState />
+            <AnimatedReveal index={5} animationKey={listRevealKey}>
+              <EmptyState />
+            </AnimatedReveal>
           ) : isSearchActive && !hasFilteredPills ? (
-            <SearchEmptyState query={debouncedSearch} />
+            <AnimatedReveal index={5} animationKey={listRevealKey}>
+              <SearchEmptyState query={debouncedSearch} />
+            </AnimatedReveal>
           ) : (
             <>
-              {filteredSections.map(section => (
+              {filteredSections.map((section, sectionIndex) => (
                 <PillSection
                   key={section.id}
                   section={section}
                   selectedDate={selectedDate}
                   intakeMap={intakeMap}
-                  onTake={handleTake}
+                  onTake={takeDose}
+                  onSkip={skipDose}
+                  onSnooze={snoozeDose}
                   onPressEdit={handleEditPill}
+                  animationKey={listRevealKey}
+                  startIndex={5 + sectionIndex * 4}
                 />
               ))}
               {filteredAsNeededSection && (
@@ -244,14 +263,20 @@ const Daily = () => {
                   section={filteredAsNeededSection}
                   selectedDate={selectedDate}
                   intakeMap={intakeMap}
-                  onTake={handleTake}
+                  onTake={takeDose}
+                  onSkip={skipDose}
+                  onSnooze={snoozeDose}
                   onPressEdit={handleEditPill}
+                  animationKey={listRevealKey}
+                  startIndex={5 + filteredSections.length * 4}
                 />
               )}
             </>
           )}
 
-          <MotivationCard weeklyCompliance={weeklyCompliance} />
+          <AnimatedReveal index={6} animationKey={revealKey}>
+            <MotivationCard weeklyCompliance={weeklyCompliance} />
+          </AnimatedReveal>
         </ScrollView>
       </KeyboardAvoidingView>
 

@@ -1,16 +1,15 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { formatTakenAt, getDetailText } from '../../../common/dailyHelpers';
+import DoseActions from '../../shared/DoseActions';
 import styles, { COLORS } from './styles';
 
-const MedCard = ({ item, statusInfo, onTake, onPressEdit }) => {
-  const isPending = statusInfo.status === 'pending';
-  const isSkipped = statusInfo.status === 'skipped';
-  const isTaken = statusInfo.status === 'taken';
+const MedCard = ({ item, statusInfo, onTake, onSkip, onSnooze, onPressEdit }) => {
+  const status = statusInfo.status;
 
   return (
-    <View style={[styles.medCard, isPending && styles.medCardPending]}>
+    <View style={[styles.medCard, status === 'pending' && styles.medCardPending]}>
       <TouchableOpacity
         style={styles.medCardPressable}
         onPress={() => onPressEdit(item)}
@@ -19,7 +18,7 @@ const MedCard = ({ item, statusInfo, onTake, onPressEdit }) => {
         <View
           style={[
             styles.medCardAccent,
-            isSkipped && styles.medCardAccentSkipped,
+            status === 'skipped' && styles.medCardAccentSkipped,
           ]}
         />
         <View style={styles.medIconWrapper}>
@@ -32,41 +31,25 @@ const MedCard = ({ item, statusInfo, onTake, onPressEdit }) => {
         <View style={styles.medInfo}>
           <Text style={styles.medName}>{item.name}</Text>
           <Text style={styles.medDetail}>{getDetailText(item)}</Text>
+          {item.isLowStock ? (
+            <Text style={styles.stockWarning}>Stok azalıyor ({item.pill.stockQuantity})</Text>
+          ) : null}
+          {item.pill.prospectus ? (
+            <TouchableOpacity onPress={() => Alert.alert('Prospektüs', item.pill.prospectus)}>
+              <Text style={styles.prospectusLink}>Prospektüs</Text>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </TouchableOpacity>
 
       <View style={styles.medAction}>
-        {isTaken && (
-          <>
-            <View style={styles.takenBadge}>
-              <Text style={styles.takenBadgeText}>Alındı</Text>
-            </View>
-            <Text style={styles.takenTimeText}>
-              {formatTakenAt(statusInfo.takenAt)}
-            </Text>
-          </>
-        )}
-
-        {isSkipped && (
-          <>
-            <View style={styles.skippedBadge}>
-              <Text style={styles.skippedBadgeText}>Atlandı</Text>
-            </View>
-            <TouchableOpacity onPress={() => onTake(item)} activeOpacity={0.7}>
-              <Text style={styles.takeNowText}>Şimdi Al</Text>
-            </TouchableOpacity>
-          </>
-        )}
-
-        {isPending && (
-          <TouchableOpacity
-            style={styles.takeButton}
-            onPress={() => onTake(item)}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.takeButtonText}>Al</Text>
-          </TouchableOpacity>
-        )}
+        <DoseActions
+          status={status}
+          takenAt={formatTakenAt(statusInfo.takenAt)}
+          onTake={() => onTake(item)}
+          onSkip={() => onSkip(item)}
+          onSnooze={item.asNeeded ? undefined : () => onSnooze(item)}
+        />
       </View>
     </View>
   );

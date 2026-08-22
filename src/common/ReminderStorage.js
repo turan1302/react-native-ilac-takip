@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { REMINDERS_ENABLED_KEY } from './storage/keys';
 
-export const REMINDERS_ENABLED_KEY = 'reminders_enabled';
+export { REMINDERS_ENABLED_KEY };
 
 export const getRemindersEnabled = async () => {
   const value = await AsyncStorage.getItem(REMINDERS_ENABLED_KEY);

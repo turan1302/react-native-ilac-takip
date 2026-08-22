@@ -38,6 +38,11 @@ const styles = StyleSheet.create({
   headerTitleAccent: {
     color: COLORS.primary,
   },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   iconButton: {
     width: 40,
     height: 40,

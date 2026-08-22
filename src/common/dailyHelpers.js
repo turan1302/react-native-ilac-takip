@@ -72,10 +72,21 @@ const isPastScheduledTime = (timeStr, dateKey) => {
 };
 
 export const getPillStatus = (item, dateKey, intakeMap) => {
-  const intake = intakeMap.get(item.pill.id);
+  const intake =
+    intakeMap.get(item.id) ||
+    intakeMap.get(`${item.pill.id}__${item.time || 'asneeded'}`) ||
+    intakeMap.get(item.pill.id);
 
-  if (intake?.taken) {
+  if (intake?.status === 'taken' || intake?.taken) {
     return { status: 'taken', takenAt: intake.takenAt };
+  }
+
+  if (intake?.status === 'skipped' || intake?.status === 'missed') {
+    return { status: 'skipped' };
+  }
+
+  if (intake?.status === 'postponed') {
+    return { status: 'postponed', postponeUntil: intake.postponeUntil };
   }
 
   if (item.asNeeded) {
@@ -101,9 +112,9 @@ export const calculateWeeklyCompliance = async (pills, endDateKey, colors) => {
     const dateKey = shiftDateKeyByDays(endDateKey, -offset);
     const intakeMap = await getIntakeMapForDate(dateKey);
     const takenIds = new Set(
-      [...intakeMap.values()]
-        .filter(report => report.taken)
-        .map(report => report.pillId),
+      [...intakeMap.entries()]
+        .filter(([, report]) => report.taken || report.status === 'taken')
+        .map(([key]) => key),
     );
     const { sections, asNeededSection } = buildPillSections(
       pills,
@@ -117,7 +128,7 @@ export const calculateWeeklyCompliance = async (pills, endDateKey, colors) => {
     ];
 
     total += items.length;
-    taken += items.filter(item => intakeMap.get(item.pill.id)?.taken).length;
+    taken += items.filter(item => item.isTaken).length;
   }
 
   return total > 0 ? Math.round((taken / total) * 100) : 0;
@@ -135,6 +146,7 @@ const matchesSearchQuery = (item, query) => {
     item.dosage,
     item.time,
     item.pill?.notes,
+    item.pill?.prospectus,
     item.pill?.type,
   ];
 

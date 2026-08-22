@@ -1,7 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatDateKey } from './pillHelpers';
+import { NOTIFICATION_SCHEDULES_KEY } from './storage/keys';
 
-export const NOTIFICATION_SCHEDULES_KEY = 'pill_notification_schedules';
+export { NOTIFICATION_SCHEDULES_KEY };
 
 export const getNotificationSchedules = async () => {
   const data = await AsyncStorage.getItem(NOTIFICATION_SCHEDULES_KEY);
@@ -30,14 +31,16 @@ export const upsertNotificationSchedule = async ({
   trigger,
   useExactAlarm = false,
   repeatFrequency = 'DAILY',
+  notificationId,
 }) => {
   const schedules = await getNotificationSchedules();
   const triggerDate = new Date(trigger.timestamp);
   const date = formatDateKey(triggerDate);
   const now = new Date().toISOString();
+  const id = notificationId || pill.id;
 
   const entry = {
-    id: pill.id,
+    id,
     pillId: pill.id,
     pillName: pill.name,
     dosage: pill.dosage || '',
@@ -50,10 +53,10 @@ export const upsertNotificationSchedule = async ({
     useExactAlarm,
     updatedAt: now,
     createdAt:
-      schedules.find(schedule => schedule.id === pill.id)?.createdAt || now,
+      schedules.find(schedule => schedule.id === id)?.createdAt || now,
   };
 
-  const index = schedules.findIndex(schedule => schedule.id === pill.id);
+  const index = schedules.findIndex(schedule => schedule.id === id);
 
   if (index >= 0) {
     schedules[index] = entry;

@@ -3,9 +3,9 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import styles, { COLORS } from './styles';
 
-const TimePickerField = ({ time, onPress }) => (
+const TimePickerField = ({ time, onPress, label = 'Saat Belirle' }) => (
   <View style={styles.fieldGroup}>
-    <Text style={styles.label}>Saat Belirle</Text>
+    <Text style={styles.label}>{label}</Text>
     <TouchableOpacity
       style={styles.timeBox}
       onPress={onPress}

@@ -2,30 +2,36 @@ import React, { useCallback, useMemo, useState } from 'react';
 import { ScrollView, StatusBar } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getPills } from '../../common/PillStorage';
+import { getPillsForProfile, isLowStock } from '../../common/PillStorage';
 import {
-  getTakenPillIdsForDate,
+  getTakenDoseKeysForDate,
   getTodayDateKey,
-  togglePillIntake,
 } from '../../common/IntakeStorage';
 import { buildPillSections } from '../../common/pillHelpers';
+import { useProfile } from '../../common/ProfileContext';
+import useDoseActions from '../../hooks/useDoseActions';
+import useRevealOnFocus from '../../hooks/useRevealOnFocus';
+import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import AddPillFab from '../../components/Home/AddPillFab';
 import EmptyState from '../../components/Home/EmptyState';
 import Header from '../../components/Home/Header';
 import PillSection from '../../components/Home/PillSection';
 import SectionHeader from '../../components/Home/SectionHeader';
 import TodaySummary from '../../components/Home/TodaySummary';
+import LowStockCard from '../../components/Home/LowStockCard';
 import styles, { COLORS } from './styles';
 
 const Home = () => {
   const navigation = useNavigation();
   const today = getTodayDateKey();
+  const { activeProfileId } = useProfile();
   const [sections, setSections] = useState([]);
   const [asNeededSection, setAsNeededSection] = useState(null);
+  const [lowStockPills, setLowStockPills] = useState([]);
 
   const loadPills = useCallback(async () => {
-    const pills = await getPills();
-    const takenIds = await getTakenPillIdsForDate(today);
+    const pills = await getPillsForProfile(activeProfileId);
+    const takenIds = await getTakenDoseKeysForDate(today);
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
       pills,
       COLORS,
@@ -35,7 +41,8 @@ const Home = () => {
 
     setSections(pillSections);
     setAsNeededSection(asNeeded);
-  }, [today]);
+    setLowStockPills(pills.filter(isLowStock));
+  }, [today, activeProfileId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -54,10 +61,8 @@ const Home = () => {
   const progressPercent =
     totalCount > 0 ? Math.round((takenCount / totalCount) * 100) : 0;
 
-  const handleToggleTaken = async item => {
-    await togglePillIntake(item.pill, today, !item.isTaken);
-    await loadPills();
-  };
+  const { takeDose, skipDose, snoozeDose } = useDoseActions(today, loadPills);
+  const revealKey = useRevealOnFocus();
 
   const handleAddPill = () => {
     navigation.navigate('AddPill');
@@ -81,33 +86,53 @@ const Home = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header />
+        <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
+          <Header />
+        </AnimatedReveal>
 
-        <TodaySummary
-          progressPercent={progressPercent}
-          takenCount={takenCount}
-          totalCount={totalCount}
-        />
+        <AnimatedReveal index={1} animationKey={revealKey}>
+          <TodaySummary
+            progressPercent={progressPercent}
+            takenCount={takenCount}
+            totalCount={totalCount}
+          />
+        </AnimatedReveal>
 
-        <SectionHeader onSeeAll={handleSeeAll} />
+        <AnimatedReveal index={2} animationKey={revealKey}>
+          <LowStockCard pills={lowStockPills} />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={3} animationKey={revealKey} distance={12}>
+          <SectionHeader onSeeAll={handleSeeAll} />
+        </AnimatedReveal>
 
         {!hasPills ? (
-          <EmptyState />
+          <AnimatedReveal index={4} animationKey={revealKey}>
+            <EmptyState />
+          </AnimatedReveal>
         ) : (
           <>
-            {sections.map(section => (
+            {sections.map((section, sectionIndex) => (
               <PillSection
                 key={section.id}
                 section={section}
-                onToggleTaken={handleToggleTaken}
+                onTake={takeDose}
+                onSkip={skipDose}
+                onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
+                animationKey={revealKey}
+                startIndex={4 + sectionIndex * 4}
               />
             ))}
             {asNeededSection && (
               <PillSection
                 section={asNeededSection}
-                onToggleTaken={handleToggleTaken}
+                onTake={takeDose}
+                onSkip={skipDose}
+                onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
+                animationKey={revealKey}
+                startIndex={4 + sections.length * 4}
               />
             )}
           </>

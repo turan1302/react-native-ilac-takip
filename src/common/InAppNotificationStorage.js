@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { IN_APP_DISMISSALS_KEY } from './storage/keys';
 
-export const IN_APP_DISMISSALS_KEY = 'pill_in_app_notification_dismissals';
+export { IN_APP_DISMISSALS_KEY };
 
 export const getDismissals = async () => {
   const data = await AsyncStorage.getItem(IN_APP_DISMISSALS_KEY);

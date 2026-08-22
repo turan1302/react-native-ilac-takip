@@ -70,6 +70,22 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
     borderColor: COLORS.primary,
   },
+  actionWrap: {
+    paddingRight: 10,
+    paddingVertical: 8,
+  },
+  stockWarning: {
+    marginTop: 4,
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
+  },
+  prospectusLink: {
+    marginTop: 4,
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
 });
 
 export default styles;

@@ -1,13 +1,14 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { ScrollView, StatusBar, Alert, Platform } from 'react-native';
+import { ScrollView, StatusBar, Alert } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { getPills } from '../../common/PillStorage';
+import { getPillsForProfile } from '../../common/PillStorage';
 import {
-  getTakenPillIdsForDate,
+  getTakenDoseKeysForDate,
   getTodayDateKey,
-  togglePillIntake,
 } from '../../common/IntakeStorage';
+import { useProfile } from '../../common/ProfileContext';
+import useDoseActions from '../../hooks/useDoseActions';
 import {
   getRemindersEnabled,
   setRemindersEnabled,
@@ -31,6 +32,8 @@ import {
   parseDateKeyParts,
   shiftDateKeyByDays,
 } from '../../common/pillHelpers';
+import useRevealOnFocus from '../../hooks/useRevealOnFocus';
+import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import AddPillFab from '../../components/Program/AddPillFab';
 import BackgroundSetupCard from '../../components/Program/BackgroundSetupCard';
 import CalendarStrip from '../../components/Program/CalendarStrip';
@@ -44,6 +47,7 @@ import styles, { COLORS } from './styles';
 
 const Program = () => {
   const navigation = useNavigation();
+  const { activeProfileId } = useProfile();
   const [weekDays, setWeekDays] = useState(getWeekDaysForDate(getTodayDateKey()));
   const [sections, setSections] = useState([]);
   const [asNeededSection, setAsNeededSection] = useState(null);
@@ -54,10 +58,11 @@ const Program = () => {
   const [tempDay, setTempDay] = useState(1);
   const [tempMonth, setTempMonth] = useState(1);
   const [tempYear, setTempYear] = useState(new Date().getFullYear());
+  const revealKey = useRevealOnFocus();
 
   const loadPills = useCallback(async () => {
-    const pills = await getPills();
-    const takenIds = await getTakenPillIdsForDate(selectedDate);
+    const pills = await getPillsForProfile(activeProfileId);
+    const takenIds = await getTakenDoseKeysForDate(selectedDate);
     const enabled = await getRemindersEnabled();
 
     setWeekDays(getWeekDaysForDate(selectedDate));
@@ -73,7 +78,7 @@ const Program = () => {
 
     const setupStatus = await getReminderSetupStatus();
     setNeedsBackgroundSetup(setupStatus.needsBackgroundSetup);
-  }, [selectedDate]);
+  }, [selectedDate, activeProfileId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -121,10 +126,10 @@ const Program = () => {
     }
   };
 
-  const handleToggleTaken = async item => {
-    await togglePillIntake(item.pill, selectedDate, !item.isTaken);
-    await loadPills();
-  };
+  const { takeDose, skipDose, snoozeDose } = useDoseActions(
+    selectedDate,
+    loadPills,
+  );
 
   const handleToggleReminders = async () => {
     const newValue = !remindersEnabled;
@@ -167,15 +172,12 @@ const Program = () => {
   };
 
   const handleOpenBackgroundSettings = () => {
-    const copy = getPermissionAlertCopy('setup');
+    const copy = getPermissionAlertCopy('notifications');
     Alert.alert(copy.title, copy.message, [
       { text: 'İptal', style: 'cancel' },
       {
         text: 'Ayarlara Git',
-        onPress: () =>
-          Platform.OS === 'ios'
-            ? openReminderPermissionSettings()
-            : openBackgroundReminderSettings(),
+        onPress: () => openReminderPermissionSettings(),
       },
     ]);
   };
@@ -201,46 +203,66 @@ const Program = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header />
+        <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
+          <Header />
+        </AnimatedReveal>
 
-        <ProgramDateHeader
-          selectedDate={selectedDate}
-          onOpenCalendar={openDateModal}
-          onPreviousDay={() => setSelectedDate(prev => shiftDateKeyByDays(prev, -1))}
-          onNextDay={() => setSelectedDate(prev => shiftDateKeyByDays(prev, 1))}
-        />
+        <AnimatedReveal index={1} animationKey={revealKey}>
+          <ProgramDateHeader
+            selectedDate={selectedDate}
+            onOpenCalendar={openDateModal}
+            onPreviousDay={() => setSelectedDate(prev => shiftDateKeyByDays(prev, -1))}
+            onNextDay={() => setSelectedDate(prev => shiftDateKeyByDays(prev, 1))}
+          />
+        </AnimatedReveal>
 
-        <CalendarStrip weekDays={weekDays} onSelectDay={setSelectedDate} />
+        <AnimatedReveal index={2} animationKey={revealKey}>
+          <CalendarStrip weekDays={weekDays} onSelectDay={setSelectedDate} />
+        </AnimatedReveal>
 
-        <ReminderToggle
-          enabled={remindersEnabled}
-          onToggle={handleToggleReminders}
-        />
+        <AnimatedReveal index={3} animationKey={revealKey}>
+          <ReminderToggle
+            enabled={remindersEnabled}
+            onToggle={handleToggleReminders}
+          />
+        </AnimatedReveal>
 
         {needsBackgroundSetup && remindersEnabled && (
-          <BackgroundSetupCard
-            {...getBackgroundSetupCardCopy()}
-            onPress={handleOpenBackgroundSettings}
-          />
+          <AnimatedReveal index={4} animationKey={revealKey}>
+            <BackgroundSetupCard
+              {...getBackgroundSetupCardCopy()}
+              onPress={handleOpenBackgroundSettings}
+            />
+          </AnimatedReveal>
         )}
 
         {!hasPills ? (
-          <EmptyState />
+          <AnimatedReveal index={5} animationKey={`${revealKey}-${selectedDate}`}>
+            <EmptyState />
+          </AnimatedReveal>
         ) : (
           <>
-            {sections.map(section => (
+            {sections.map((section, sectionIndex) => (
               <PillSection
                 key={section.id}
                 section={section}
-                onToggleTaken={handleToggleTaken}
+                onTake={takeDose}
+                onSkip={skipDose}
+                onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
+                animationKey={`${revealKey}-${selectedDate}`}
+                startIndex={5 + sectionIndex * 4}
               />
             ))}
             {asNeededSection && (
               <PillSection
                 section={asNeededSection}
-                onToggleTaken={handleToggleTaken}
+                onTake={takeDose}
+                onSkip={skipDose}
+                onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
+                animationKey={`${revealKey}-${selectedDate}`}
+                startIndex={5 + sections.length * 4}
               />
             )}
           </>

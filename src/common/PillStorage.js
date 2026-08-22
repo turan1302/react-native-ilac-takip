@@ -1,22 +1,52 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { formatDateKey } from './pillHelpers';
+import { DEFAULT_PROFILE_ID } from './ProfileStorage';
+import { PILLS_STORAGE_KEY } from './storage/keys';
 
-export const PILLS_STORAGE_KEY = 'pills';
+export { PILLS_STORAGE_KEY };
+
+export const normalizePill = pill => {
+  const source = pill && typeof pill === 'object' ? pill : {};
+
+  return {
+    ...source,
+    profileId: source.profileId || DEFAULT_PROFILE_ID,
+    prospectus: source.prospectus || '',
+    stockQuantity:
+      source.stockQuantity === '' || source.stockQuantity == null
+        ? null
+        : Number(source.stockQuantity),
+    stockThreshold:
+      source.stockThreshold === '' || source.stockThreshold == null
+        ? 5
+        : Number(source.stockThreshold),
+    daysOfWeek: Array.isArray(source.daysOfWeek) ? source.daysOfWeek : [],
+    daysOfMonth: Array.isArray(source.daysOfMonth) ? source.daysOfMonth : [],
+    endDate: source.endDate || '',
+  };
+};
 
 export const getPills = async () => {
   const data = await AsyncStorage.getItem(PILLS_STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
+  const pills = data ? JSON.parse(data) : [];
+  return pills.map(normalizePill);
+};
+
+export const getPillsForProfile = async profileId => {
+  const pills = await getPills();
+  const activeId = profileId || DEFAULT_PROFILE_ID;
+  return pills.filter(pill => (pill.profileId || DEFAULT_PROFILE_ID) === activeId);
 };
 
 export const addPill = async pill => {
   const pills = await getPills();
   const now = new Date();
-  const newPill = {
+  const newPill = normalizePill({
     ...pill,
     id: Date.now().toString(),
     createdAt: now.toISOString(),
-    startDate: formatDateKey(now),
-  };
+    startDate: pill.startDate || formatDateKey(now),
+  });
 
   pills.push(newPill);
   await AsyncStorage.setItem(PILLS_STORAGE_KEY, JSON.stringify(pills));
@@ -37,12 +67,12 @@ export const updatePill = async (id, updates) => {
     throw new Error('Pill not found');
   }
 
-  const updatedPill = {
+  const updatedPill = normalizePill({
     ...pills[index],
     ...updates,
     id,
     updatedAt: new Date().toISOString(),
-  };
+  });
 
   pills[index] = updatedPill;
   await AsyncStorage.setItem(PILLS_STORAGE_KEY, JSON.stringify(pills));
@@ -59,4 +89,12 @@ export const deletePill = async id => {
   }
 
   await AsyncStorage.setItem(PILLS_STORAGE_KEY, JSON.stringify(filtered));
+};
+
+export const isLowStock = pill => {
+  if (pill.stockQuantity == null) {
+    return false;
+  }
+
+  return Number(pill.stockQuantity) <= Number(pill.stockThreshold ?? 5);
 };

@@ -8,6 +8,8 @@ import {
 } from '../../common/IntakeStorage';
 import { dismissInAppNotification } from '../../common/InAppNotificationStorage';
 import { getMissedNotifications } from '../../common/inAppNotificationHelpers';
+import useRevealOnFocus from '../../hooks/useRevealOnFocus';
+import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import EmptyState from '../../components/Notifications/EmptyState';
 import Header from '../../components/Notifications/Header';
 import NotificationSection from '../../components/Notifications/NotificationSection';
@@ -18,6 +20,7 @@ const Notifications = () => {
   const navigation = useNavigation();
   const today = getTodayDateKey();
   const [notifications, setNotifications] = useState([]);
+  const revealKey = useRevealOnFocus();
 
   const loadNotifications = useCallback(async () => {
     const missed = await getMissedNotifications(today);
@@ -68,12 +71,18 @@ const Notifications = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header onGoBack={handleGoBack} />
+        <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
+          <Header onGoBack={handleGoBack} />
+        </AnimatedReveal>
 
-        <PageIntro />
+        <AnimatedReveal index={1} animationKey={revealKey}>
+          <PageIntro />
+        </AnimatedReveal>
 
         {!hasNotifications ? (
-          <EmptyState />
+          <AnimatedReveal index={2} animationKey={revealKey}>
+            <EmptyState />
+          </AnimatedReveal>
         ) : (
           <>
             <NotificationSection
@@ -82,6 +91,8 @@ const Notifications = () => {
               onTake={handleTake}
               onDismiss={handleDismiss}
               onPressEdit={handleEditPill}
+              animationKey={revealKey}
+              startIndex={2}
             />
             <NotificationSection
               title="PAS GEÇİLENLER"
@@ -89,6 +100,8 @@ const Notifications = () => {
               onTake={handleTake}
               onDismiss={handleDismiss}
               onPressEdit={handleEditPill}
+              animationKey={revealKey}
+              startIndex={2 + activeNotifications.length + 1}
             />
           </>
         )}

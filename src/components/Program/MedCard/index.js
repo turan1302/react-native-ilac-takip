@@ -1,10 +1,10 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import DoseActions from '../../shared/DoseActions';
 import styles, { COLORS } from './styles';
 
-const MedCard = ({ item, onToggleTaken, onPressEdit }) => (
+const MedCard = ({ item, status = 'pending', onTake, onSkip, onSnooze, onPressEdit }) => (
   <View style={styles.medCard}>
     <TouchableOpacity
       style={styles.medCardPressable}
@@ -24,15 +24,25 @@ const MedCard = ({ item, onToggleTaken, onPressEdit }) => (
         <Text style={styles.medDetail}>
           {item.asNeeded ? item.dosage : `${item.time} • ${item.dosage}`}
         </Text>
+        {item.isLowStock ? (
+          <Text style={styles.stockWarning}>Stok azalıyor ({item.pill.stockQuantity})</Text>
+        ) : null}
+        {item.pill.prospectus ? (
+          <TouchableOpacity onPress={() => Alert.alert('Prospektüs', item.pill.prospectus)}>
+            <Text style={styles.prospectusLink}>Prospektüs</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </TouchableOpacity>
-    <TouchableOpacity
-      style={[styles.medCheckbox, item.isTaken && styles.medCheckboxTaken]}
-      onPress={() => onToggleTaken(item)}
-      activeOpacity={0.7}
-    >
-      {item.isTaken && <Feather name="check" size={16} color={COLORS.white} />}
-    </TouchableOpacity>
+    <View style={styles.actionWrap}>
+      <DoseActions
+        status={item.isTaken ? 'taken' : status}
+        compact
+        onTake={() => onTake(item)}
+        onSkip={() => onSkip(item)}
+        onSnooze={item.asNeeded ? undefined : () => onSnooze(item)}
+      />
+    </View>
   </View>
 );
 

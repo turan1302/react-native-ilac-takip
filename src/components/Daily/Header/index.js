@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import ProfileSwitcher from '../../shared/ProfileSwitcher';
 import styles, { COLORS } from './styles';
 
 const Header = ({ searchVisible, onToggleSearch }) => (
@@ -15,17 +16,20 @@ const Header = ({ searchVisible, onToggleSearch }) => (
         Takibi
       </Text>
     </View>
-    <TouchableOpacity
-      style={[styles.iconButton, searchVisible && styles.iconButtonActive]}
-      onPress={onToggleSearch}
-      activeOpacity={0.7}
-    >
-      <Feather
-        name={searchVisible ? 'x' : 'search'}
-        size={20}
-        color={searchVisible ? COLORS.primary : COLORS.textSecondary}
-      />
-    </TouchableOpacity>
+    <View style={styles.headerActions}>
+      <ProfileSwitcher />
+      <TouchableOpacity
+        style={[styles.iconButton, searchVisible && styles.iconButtonActive]}
+        onPress={onToggleSearch}
+        activeOpacity={0.7}
+      >
+        <Feather
+          name={searchVisible ? 'x' : 'search'}
+          size={20}
+          color={searchVisible ? COLORS.primary : COLORS.textSecondary}
+        />
+      </TouchableOpacity>
+    </View>
   </View>
 );
 

@@ -5,8 +5,8 @@ import styles, { COLORS } from './styles';
 
 const BackgroundSetupCard = ({
   onPress,
-  title = 'Arka plan izinleri gerekli',
-  subtitle = 'Uygulama kapalıyken bildirim almak için ayarları yapın',
+  title = 'Bildirim izni gerekli',
+  subtitle = 'İlaç hatırlatmalarını almak için bildirim iznini açın',
 }) => (
   <TouchableOpacity
     style={styles.backgroundSetupCard}

@@ -3,16 +3,20 @@ import { ScrollView, StatusBar } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useReminders from '../../hooks/useReminders';
+import useRevealOnFocus from '../../hooks/useRevealOnFocus';
+import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import ReminderToggle from '../../components/Program/ReminderToggle';
 import AppVersionCard from '../../components/Settings/AppVersionCard';
 import Header from '../../components/Settings/Header';
 import SectionTitle from '../../components/Settings/SectionTitle';
 import SettingsRow from '../../components/Settings/SettingsRow';
+import FamilySection from '../../components/Settings/FamilySection';
 import styles, { COLORS } from './styles';
 
 const Settings = () => {
   const navigation = useNavigation();
   const { remindersEnabled, loadRemindersState, toggleReminders } = useReminders();
+  const revealKey = useRevealOnFocus();
 
   useFocusEffect(
     useCallback(() => {
@@ -32,27 +36,40 @@ const Settings = () => {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
-        <Header />
+        <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
+          <Header />
+        </AnimatedReveal>
 
-        <SectionTitle title="UYGULAMA" />
-        <AppVersionCard />
+        <AnimatedReveal index={1} animationKey={revealKey}>
+          <SectionTitle title="UYGULAMA" />
+          <AppVersionCard />
+        </AnimatedReveal>
 
-        <SectionTitle title="BİLDİRİMLER" />
-        <ReminderToggle enabled={remindersEnabled} onToggle={toggleReminders} />
+        <AnimatedReveal index={2} animationKey={revealKey}>
+          <SectionTitle title="AİLE MODU" />
+          <FamilySection />
+        </AnimatedReveal>
 
-        <SectionTitle title="YASAL" />
-        <SettingsRow
-          icon="shield"
-          title="Gizlilik Politikası"
-          subtitle="Verilerinizin nasıl korunduğunu öğrenin"
-          onPress={() => openLegalDocument('privacyPolicy')}
-        />
-        <SettingsRow
-          icon="file-text"
-          title="KVKK Aydınlatma Metni"
-          subtitle="Kişisel verilerin işlenmesi hakkında bilgi"
-          onPress={() => openLegalDocument('kvkk')}
-        />
+        <AnimatedReveal index={3} animationKey={revealKey}>
+          <SectionTitle title="BİLDİRİMLER" />
+          <ReminderToggle enabled={remindersEnabled} onToggle={toggleReminders} />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={4} animationKey={revealKey}>
+          <SectionTitle title="YASAL" />
+          <SettingsRow
+            icon="shield"
+            title="Gizlilik Politikası"
+            subtitle="Verilerinizin nasıl korunduğunu öğrenin"
+            onPress={() => openLegalDocument('privacyPolicy')}
+          />
+          <SettingsRow
+            icon="file-text"
+            title="KVKK Aydınlatma Metni"
+            subtitle="Kişisel verilerin işlenmesi hakkında bilgi"
+            onPress={() => openLegalDocument('kvkk')}
+          />
+        </AnimatedReveal>
       </ScrollView>
     </SafeAreaView>
   );

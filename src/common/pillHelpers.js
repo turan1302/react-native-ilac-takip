@@ -1,3 +1,5 @@
+import { getPillTimes } from './pillFormConstants';
+
 const DAY_NAMES = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 const MONTH_NAMES = [
   'Ocak',
@@ -173,30 +175,54 @@ const getPillStartDateKey = pill => {
 
 export const shouldShowPillOnDate = (pill, selectedDateKey) => {
   const frequency = pill.frequency || 'Her Gün';
+  const startDateKey = getPillStartDateKey(pill);
+  const { day } = parseDateKeyParts(selectedDateKey);
+  const weekday = parseDateKey(selectedDateKey).getDay();
+
+  if (pill.endDate && selectedDateKey > pill.endDate) {
+    return false;
+  }
+
+  if (selectedDateKey < startDateKey && frequency !== 'İhtiyaç Halinde') {
+    return false;
+  }
 
   if (frequency === 'İhtiyaç Halinde') {
     return true;
   }
 
   if (frequency === 'Haftalık') {
-    const startDateKey = getPillStartDateKey(pill);
     const diffDays = getDaysBetween(startDateKey, selectedDateKey);
     return diffDays >= 0 && diffDays % 7 === 0;
+  }
+
+  if (frequency === 'Haftada 2 Gün') {
+    const days = Array.isArray(pill.daysOfWeek) ? pill.daysOfWeek : [];
+    return days.includes(weekday);
+  }
+
+  if (frequency === 'Ayın Belirli Günleri') {
+    const days = Array.isArray(pill.daysOfMonth) ? pill.daysOfMonth : [];
+    return days.includes(day);
   }
 
   return true;
 };
 
-const mapPillToItem = (pill, takenIds, asNeeded = false) => {
+const mapPillToItem = (pill, takenIds, asNeeded = false, time = pill.time) => {
   const dosageText = [pill.dosage, pill.type].filter(Boolean).join(' • ');
+  const doseKey = `${pill.id}__${time || 'asneeded'}`;
 
   return {
-    id: pill.id,
+    id: doseKey,
     name: pill.name,
-    time: pill.time,
+    time,
     dosage: dosageText || pill.type || '-',
     icon: getTypeIcon(pill.type),
-    isTaken: takenIds.has(pill.id),
+    isTaken: takenIds.has(doseKey) || takenIds.has(pill.id),
+    isLowStock:
+      pill.stockQuantity != null &&
+      Number(pill.stockQuantity) <= Number(pill.stockThreshold ?? 5),
     asNeeded,
     pill,
   };
@@ -223,11 +249,15 @@ export const buildPillSections = (
 
   const visibleScheduled = scheduledPills
     .filter(pill => shouldShowPillOnDate(pill, selectedDateKey))
+    .flatMap(pill => {
+      const times = getPillTimes(pill);
+      return times.length ? times.map(time => ({ pill, time })) : [{ pill, time: pill.time }];
+    })
     .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
 
-  visibleScheduled.forEach(pill => {
-    const sectionId = getTimeSection(pill.time);
-    grouped[sectionId].push(mapPillToItem(pill, takenIds));
+  visibleScheduled.forEach(({ pill, time }) => {
+    const sectionId = getTimeSection(time);
+    grouped[sectionId].push(mapPillToItem(pill, takenIds, false, time));
   });
 
   const sections = SECTION_CONFIG.map(section => ({
