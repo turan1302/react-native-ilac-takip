@@ -67,11 +67,22 @@ const App = () => {
       if (event.type === EventType.ACTION_PRESS) {
         handleNotificationAction(event);
       }
+
+      if (event.type === EventType.DELIVERED) {
+        rescheduleAllReminders();
+      }
+    });
+
+    const appResume = AppState.addEventListener('change', state => {
+      if (state === 'active') {
+        rescheduleAllReminders();
+      }
     });
 
     return () => {
       cancelled = true;
       appStateSubscription?.remove();
+      appResume.remove();
       unsubscribe();
     };
   }, []);

@@ -131,3 +131,18 @@ export const getPillTimes = pill => {
 
 export const getDoseKey = (pillId, time = '') =>
   `${pillId}__${time || 'asneeded'}`;
+
+export const MEAL_RELATIONS = [
+  { value: 'none', label: 'Fark etmez' },
+  { value: 'empty', label: 'Aç karnına' },
+  { value: 'after', label: 'Tok karnına' },
+  { value: 'after30', label: 'Yemekten 30 dk sonra' },
+];
+
+export const getMealRelationLabel = value => {
+  if (!value || value === 'none') {
+    return '';
+  }
+
+  return MEAL_RELATIONS.find(item => item.value === value)?.label || '';
+};

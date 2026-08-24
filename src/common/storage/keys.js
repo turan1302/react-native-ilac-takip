@@ -9,6 +9,9 @@ export const REMINDERS_ENABLED_KEY = 'reminders_enabled';
 export const PROFILES_KEY = 'family_profiles';
 export const ACTIVE_PROFILE_KEY = 'active_profile_id';
 export const ONBOARD_SHOW_KEY = 'onboard_show';
+export const QUIET_HOURS_ENABLED_KEY = 'quiet_hours_enabled';
+export const QUIET_HOURS_START_KEY = 'quiet_hours_start';
+export const QUIET_HOURS_END_KEY = 'quiet_hours_end';
 
 export const MANAGED_STORAGE_KEYS = [
   PILLS_STORAGE_KEY,
@@ -19,4 +22,7 @@ export const MANAGED_STORAGE_KEYS = [
   PROFILES_KEY,
   ACTIVE_PROFILE_KEY,
   ONBOARD_SHOW_KEY,
+  QUIET_HOURS_ENABLED_KEY,
+  QUIET_HOURS_START_KEY,
+  QUIET_HOURS_END_KEY,
 ];

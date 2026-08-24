@@ -4,12 +4,13 @@ import notifee, {
   AndroidCategory,
   AndroidImportance,
   AndroidNotificationSetting,
+  AndroidVisibility,
   AuthorizationStatus,
   EventType,
-  RepeatFrequency,
   TriggerType,
 } from '@notifee/react-native';
 import { getPillById, getPills, isLowStock } from './PillStorage';
+import { getStockEtaLabel } from './stockHelpers';
 import { getRemindersEnabled } from './ReminderStorage';
 import { getTodayDateKey, setPillIntakeStatus } from './IntakeStorage';
 import {
@@ -17,11 +18,17 @@ import {
   removeNotificationScheduleForPill,
   upsertNotificationSchedule,
 } from './NotificationStorage';
-import { formatDateKey, parseDateKeyParts, shouldShowPillOnDate } from './pillHelpers';
-import { getPillTimes, isAsNeededFrequency } from './pillFormConstants';
+import { formatDateKey, shouldShowPillOnDate } from './pillHelpers';
+import { getMealRelationLabel, getPillTimes, isAsNeededFrequency } from './pillFormConstants';
+import {
+  getQuietHoursEndDate,
+  getQuietHoursSettings,
+  isTimeInQuietHours,
+} from './QuietHoursStorage';
 
 const CHANNEL_ID = 'medication-reminders';
 const CATEGORY_ID = 'medication-reminder';
+const SCHEDULE_DAYS_AHEAD = 7;
 
 const shouldSchedulePill = pill => {
   if (isAsNeededFrequency(pill.frequency)) {
@@ -34,68 +41,29 @@ const shouldSchedulePill = pill => {
 const toNotificationId = (prefix, pillId, time = '', extra = '') =>
   [prefix, pillId, (time || '').replace(':', ''), extra].filter(Boolean).join('_');
 
-const getPillStartDateParts = pill => {
-  if (pill.startDate) {
-    return parseDateKeyParts(pill.startDate);
-  }
+const getUpcomingDatesForSlot = (pill, time, now, daysAhead) => {
+  const [hour, minute] = (time || '09:00').split(':').map(Number);
+  const dates = [];
 
-  if (pill.createdAt) {
-    return parseDateKeyParts(formatDateKey(new Date(pill.createdAt)));
-  }
+  for (let offset = 0; offset <= daysAhead; offset += 1) {
+    const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset);
+    const dateKey = formatDateKey(day);
 
-  return parseDateKeyParts(formatDateKey(new Date()));
-};
-
-const getDailyTriggerDate = (hour, minute) => {
-  const now = new Date();
-  const trigger = new Date();
-  trigger.setSeconds(0, 0);
-  trigger.setHours(hour, minute, 0, 0);
-
-  if (trigger.getTime() <= now.getTime()) {
-    trigger.setDate(trigger.getDate() + 1);
-  }
-
-  return trigger;
-};
-
-const getWeeklyTriggerDate = (hour, minute, targetDayOfWeek) => {
-  const now = new Date();
-  const trigger = new Date();
-  trigger.setSeconds(0, 0);
-  trigger.setHours(hour, minute, 0, 0);
-
-  let daysUntil = (targetDayOfWeek - trigger.getDay() + 7) % 7;
-
-  if (daysUntil === 0 && trigger.getTime() <= now.getTime()) {
-    daysUntil = 7;
-  }
-
-  trigger.setDate(trigger.getDate() + daysUntil);
-  return trigger;
-};
-
-const getNextMonthDayDate = (hour, minute, daysOfMonth = []) => {
-  const now = new Date();
-
-  for (let offset = 0; offset < 62; offset += 1) {
-    const candidate = new Date();
-    candidate.setSeconds(0, 0);
-    candidate.setHours(hour, minute, 0, 0);
-    candidate.setDate(candidate.getDate() + offset);
-
-    if (!daysOfMonth.includes(candidate.getDate())) {
+    if (!shouldShowPillOnDate(pill, dateKey)) {
       continue;
     }
 
-    if (candidate.getTime() <= now.getTime()) {
+    const trigger = new Date(day);
+    trigger.setHours(hour, minute, 0, 0);
+
+    if (trigger.getTime() <= now.getTime()) {
       continue;
     }
 
-    return candidate;
+    dates.push(trigger);
   }
 
-  return null;
+  return dates;
 };
 
 const attachExactAlarm = (trigger, useExactAlarm) => {
@@ -108,112 +76,63 @@ const attachExactAlarm = (trigger, useExactAlarm) => {
   return trigger;
 };
 
-const buildTriggerForTime = (pill, time, extra, useExactAlarm = false) => {
-  const [hour, minute] = time.split(':').map(Number);
-  const frequency = pill.frequency || 'Her Gün';
-  let triggerDate = null;
-  let repeatFrequency = RepeatFrequency.DAILY;
+const getScheduleSlots = pill =>
+  getPillTimes(pill).map(time => ({ time }));
 
-  if (frequency === 'Haftalık') {
-    const { year, month, day } = getPillStartDateParts(pill);
-    const anchor = new Date(year, month - 1, day);
-    triggerDate = getWeeklyTriggerDate(hour, minute, extra ?? anchor.getDay());
-    repeatFrequency = RepeatFrequency.WEEKLY;
-  } else if (frequency === 'Haftada 2 Gün') {
-    triggerDate = getWeeklyTriggerDate(hour, minute, extra);
-    repeatFrequency = RepeatFrequency.WEEKLY;
-  } else if (frequency === 'Ayın Belirli Günleri') {
-    triggerDate = getNextMonthDayDate(hour, minute, pill.daysOfMonth);
-    repeatFrequency = undefined;
-  } else {
-    triggerDate = getDailyTriggerDate(hour, minute);
-    repeatFrequency = RepeatFrequency.DAILY;
-  }
+const getNotificationBody = (pill, time) => {
+  const meal = getMealRelationLabel(pill.mealRelation);
+  const timePart = time ? ` (${time})` : '';
+  const mealPart = meal ? ` ${meal} alın.` : '';
 
-  if (!triggerDate) {
-    return null;
-  }
-
-  const dateKey = formatDateKey(triggerDate);
-
-  if (pill.endDate && dateKey > pill.endDate) {
-    return null;
-  }
-
-  if (pill.startDate && dateKey < pill.startDate) {
-    const [year, month, day] = pill.startDate.split('-').map(Number);
-    triggerDate = new Date(year, month - 1, day, hour, minute, 0, 0);
-  }
-
-  if (!shouldShowPillOnDate(pill, formatDateKey(triggerDate))) {
-    return null;
-  }
-
-  const trigger = {
-    type: TriggerType.TIMESTAMP,
-    timestamp: triggerDate.getTime(),
-  };
-
-  if (repeatFrequency) {
-    trigger.repeatFrequency = repeatFrequency;
-  }
-
-  return attachExactAlarm(trigger, useExactAlarm);
+  return `${pill.name} alma zamanınız geldi${timePart}.${mealPart}`;
 };
 
-const getScheduleSlots = pill => {
-  const times = getPillTimes(pill);
-  const frequency = pill.frequency || 'Her Gün';
+const androidReminderStyle = {
+  channelId: CHANNEL_ID,
+  category: AndroidCategory.REMINDER,
+  pressAction: {
+    id: 'default',
+    launchActivity: 'default',
+  },
+  smallIcon: 'ic_notification',
+  importance: AndroidImportance.HIGH,
+  visibility: AndroidVisibility.PUBLIC,
+  sound: 'default',
+  vibrationPattern: [300, 500, 300, 500],
+  showTimestamp: true,
+  autoCancel: true,
+  lightUpScreen: true,
+};
 
-  if (frequency === 'Haftada 2 Gün') {
-    return (pill.daysOfWeek || []).flatMap(weekday =>
-      times.map(time => ({ time, extra: weekday })),
-    );
-  }
-
-  if (frequency === 'Haftalık') {
-    const { year, month, day } = getPillStartDateParts(pill);
-    const weekday = new Date(year, month - 1, day).getDay();
-    return times.map(time => ({ time, extra: weekday }));
-  }
-
-  return times.map(time => ({ time, extra: '' }));
+const iosReminderStyle = {
+  categoryId: CATEGORY_ID,
+  sound: 'default',
+  interruptionLevel: 'timeSensitive',
+  foregroundPresentationOptions: {
+    badge: true,
+    sound: true,
+    banner: true,
+    list: true,
+  },
 };
 
 const buildNotification = (pill, time, id) => ({
   id,
   title: 'İlaç Hatırlatması',
-  body: `${pill.name} alma zamanınız geldi${time ? ` (${time})` : ''}.`,
+  body: getNotificationBody(pill, time),
   data: {
     pillId: String(pill.id),
     time: time || '',
   },
   android: {
-    channelId: CHANNEL_ID,
-    category: AndroidCategory.REMINDER,
-    pressAction: {
-      id: 'default',
-      launchActivity: 'default',
-    },
+    ...androidReminderStyle,
     actions: [
       { title: '10 dk sonra', pressAction: { id: 'snooze_10' } },
       { title: 'Daha sonra', pressAction: { id: 'snooze_60' } },
       { title: 'Bugün atla', pressAction: { id: 'skip_today' } },
     ],
-    smallIcon: 'ic_notification',
-    importance: AndroidImportance.HIGH,
   },
-  ios: {
-    categoryId: CATEGORY_ID,
-    sound: 'default',
-    interruptionLevel: 'active',
-    foregroundPresentationOptions: {
-      badge: true,
-      sound: true,
-      banner: true,
-      list: true,
-    },
-  },
+  ios: iosReminderStyle,
 });
 
 const isNotificationAuthorized = authorizationStatus =>
@@ -419,6 +338,7 @@ export const initializeNotifications = async () => {
         importance: AndroidImportance.HIGH,
         sound: 'default',
         vibration: true,
+        lights: true,
       });
 
       await registerAlarmAccessWithSystem();
@@ -430,32 +350,53 @@ export const initializeNotifications = async () => {
   return permissionResult;
 };
 
-const createTriggerWithFallback = async (pill, time, extra, useExactAlarm) => {
-  const trigger = buildTriggerForTime(pill, time, extra, useExactAlarm);
-
-  if (!trigger) {
-    return null;
-  }
-
-  const id = toNotificationId('dose', pill.id, time, extra);
-  const notification = buildNotification(pill, time, id);
+const scheduleExactNotification = async (notification, timestamp, useExactAlarm) => {
+  const trigger = attachExactAlarm(
+    {
+      type: TriggerType.TIMESTAMP,
+      timestamp,
+    },
+    useExactAlarm,
+  );
 
   try {
     await notifee.createTriggerNotification(notification, trigger);
-    return { trigger, useExactAlarm, id };
+    return { trigger, useExactAlarm: true };
   } catch (error) {
-    if (useExactAlarm) {
-      const fallbackTrigger = buildTriggerForTime(pill, time, extra, false);
-      if (!fallbackTrigger) {
-        throw error;
-      }
-
-      await notifee.createTriggerNotification(notification, fallbackTrigger);
-      return { trigger: fallbackTrigger, useExactAlarm: false, id };
+    if (!useExactAlarm) {
+      throw error;
     }
 
-    throw error;
+    const fallback = attachExactAlarm(
+      {
+        type: TriggerType.TIMESTAMP,
+        timestamp,
+      },
+      false,
+    );
+    await notifee.createTriggerNotification(notification, fallback);
+    return { trigger: fallback, useExactAlarm: false };
   }
+};
+
+const buildDigestNotification = (items, timestamp) => {
+  const names = items
+    .map(item =>
+      item.time ? `${item.pill.name} (${item.time})` : item.pill.name,
+    )
+    .join(', ');
+
+  return {
+    id: `digest_${timestamp}`,
+    title: 'Sabah hatırlatması',
+    body: `Sessiz saatlerdeki ilaçlarınız: ${names}`,
+    data: { digest: '1' },
+    android: androidReminderStyle,
+    ios: {
+      ...iosReminderStyle,
+      categoryId: undefined,
+    },
+  };
 };
 
 const isPillTriggerId = (triggerId, pillId) =>
@@ -486,22 +427,22 @@ export const scheduleSnoozeReminder = async (pill, time, minutes) => {
     return false;
   }
 
-  const trigger = attachExactAlarm(
-    {
-      type: TriggerType.TIMESTAMP,
-      timestamp: Date.now() + minutes * 60 * 1000,
-    },
-    true,
-  );
+  const quiet = await getQuietHoursSettings();
+  let fireAt = new Date(Date.now() + minutes * 60 * 1000);
+
+  if (isTimeInQuietHours(fireAt, quiet)) {
+    fireAt = getQuietHoursEndDate(fireAt, quiet);
+  }
 
   try {
-    await notifee.createTriggerNotification(
+    await scheduleExactNotification(
       buildNotification(
         pill,
         time,
         toNotificationId('snooze', pill.id, time, String(minutes)),
       ),
-      trigger,
+      fireAt.getTime(),
+      true,
     );
     return true;
   } catch (error) {
@@ -521,7 +462,9 @@ export const notifyLowStockIfNeeded = async pill => {
     await notifee.displayNotification({
       id: `stock_${latest.id}`,
       title: 'Stok azalıyor',
-      body: `${latest.name} stoğu ${latest.stockQuantity} kaldı. Bitmeden yenileyin.`,
+      body: `${latest.name} stoğu ${latest.stockQuantity} kaldı. ${
+        getStockEtaLabel(latest) || 'Bitmeden yenileyin.'
+      }`,
       android: {
         channelId: CHANNEL_ID,
         smallIcon: 'ic_notification',
@@ -573,63 +516,6 @@ export const handleNotificationAction = async ({ type, detail }) => {
   }
 };
 
-export const schedulePillReminder = async pill => {
-  if (!shouldSchedulePill(pill)) {
-    await cancelPillReminder(pill.id);
-    return false;
-  }
-
-  const remindersEnabled = await getRemindersEnabled();
-
-  if (!remindersEnabled) {
-    await cancelPillReminder(pill.id);
-    return false;
-  }
-
-  const notificationsGranted = await hasNotificationPermission();
-
-  if (!notificationsGranted) {
-    return false;
-  }
-
-  await cancelPillReminder(pill.id);
-
-  try {
-    const slots = getScheduleSlots(pill);
-    let scheduledAny = false;
-
-    for (const slot of slots) {
-      const result = await createTriggerWithFallback(
-        pill,
-        slot.time,
-        slot.extra,
-        true,
-      );
-
-      if (!result) {
-        continue;
-      }
-
-      scheduledAny = true;
-      await upsertNotificationSchedule({
-        pill,
-        trigger: result.trigger,
-        useExactAlarm: result.useExactAlarm,
-        notificationId: result.id,
-        repeatFrequency:
-          result.trigger.repeatFrequency === RepeatFrequency.WEEKLY
-            ? 'WEEKLY'
-            : 'DAILY',
-      });
-    }
-
-    return scheduledAny;
-  } catch (error) {
-    console.warn('schedulePillReminder failed:', pill.id, error);
-    return false;
-  }
-};
-
 export const rescheduleAllReminders = async () => {
   const remindersEnabled = await getRemindersEnabled();
 
@@ -654,21 +540,99 @@ export const rescheduleAllReminders = async () => {
     return { scheduled: 0, failed: 0, permissionDenied: true };
   }
 
-  const pills = await getPills();
+  const [pills, quiet] = await Promise.all([
+    getPills(),
+    getQuietHoursSettings(),
+  ]);
+  const now = new Date();
+  const digestMap = new Map();
   let scheduled = 0;
   let failed = 0;
 
   for (const pill of pills) {
-    const success = await schedulePillReminder(pill);
+    if (!shouldSchedulePill(pill)) {
+      continue;
+    }
 
-    if (success) {
+    let pillScheduled = false;
+
+    for (const slot of getScheduleSlots(pill)) {
+      const dates = getUpcomingDatesForSlot(
+        pill,
+        slot.time,
+        now,
+        SCHEDULE_DAYS_AHEAD,
+      );
+
+      for (const date of dates) {
+        if (isTimeInQuietHours(date, quiet)) {
+          const digestAt = getQuietHoursEndDate(date, quiet).getTime();
+          const bucket = digestMap.get(digestAt) || [];
+          bucket.push({ pill, time: slot.time });
+          digestMap.set(digestAt, bucket);
+          pillScheduled = true;
+          continue;
+        }
+
+        const dateStamp = formatDateKey(date).replace(/-/g, '');
+        const id = toNotificationId('dose', pill.id, slot.time, dateStamp);
+
+        try {
+          const result = await scheduleExactNotification(
+            buildNotification(pill, slot.time, id),
+            date.getTime(),
+            true,
+          );
+          pillScheduled = true;
+          await upsertNotificationSchedule({
+            pill,
+            trigger: result.trigger,
+            useExactAlarm: result.useExactAlarm,
+            notificationId: id,
+            repeatFrequency: 'ONCE',
+          });
+        } catch (error) {
+          console.warn('schedule dose failed:', pill.id, error);
+        }
+      }
+    }
+
+    if (pillScheduled) {
       scheduled += 1;
-    } else if (shouldSchedulePill(pill)) {
+    } else {
       failed += 1;
     }
   }
 
+  for (const [timestamp, items] of digestMap.entries()) {
+    const uniqueItems = [];
+    const seen = new Set();
+
+    items.forEach(item => {
+      const key = `${item.pill.id}_${item.time}`;
+      if (!seen.has(key)) {
+        seen.add(key);
+        uniqueItems.push(item);
+      }
+    });
+
+    try {
+      await scheduleExactNotification(
+        buildDigestNotification(uniqueItems, timestamp),
+        timestamp,
+        true,
+      );
+    } catch (error) {
+      console.warn('schedule digest failed:', error);
+    }
+  }
+
   return { scheduled, failed };
+};
+
+export const schedulePillReminder = async () => {
+  const result = await rescheduleAllReminders();
+  return !result.permissionDenied;
 };
 
 export const cancelAllReminders = async () => {

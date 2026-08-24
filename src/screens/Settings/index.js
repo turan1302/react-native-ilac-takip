@@ -11,6 +11,8 @@ import Header from '../../components/Settings/Header';
 import SectionTitle from '../../components/Settings/SectionTitle';
 import SettingsRow from '../../components/Settings/SettingsRow';
 import FamilySection from '../../components/Settings/FamilySection';
+import QuietHoursSection from '../../components/Settings/QuietHoursSection';
+import BackupSection from '../../components/Settings/BackupSection';
 import styles, { COLORS } from './styles';
 
 const Settings = () => {
@@ -53,9 +55,15 @@ const Settings = () => {
         <AnimatedReveal index={3} animationKey={revealKey}>
           <SectionTitle title="BİLDİRİMLER" />
           <ReminderToggle enabled={remindersEnabled} onToggle={toggleReminders} />
+          <QuietHoursSection />
         </AnimatedReveal>
 
         <AnimatedReveal index={4} animationKey={revealKey}>
+          <SectionTitle title="YEDEKLEME" />
+          <BackupSection />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={5} animationKey={revealKey}>
           <SectionTitle title="YASAL" />
           <SettingsRow
             icon="shield"

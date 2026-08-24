@@ -42,6 +42,7 @@ import ScheduleExtras, {
   ProspectusField,
   StockFields,
 } from '../../../components/Pills/AddPill/ScheduleExtras';
+import { MealRelationField } from '../../../components/Pills/AddPill/MealRelationField';
 import DosageTypeRow from '../../../components/Pills/AddPill/DosageTypeRow';
 import FormActions from '../../../components/Pills/AddPill/FormActions';
 import FrequencyChips from '../../../components/Pills/AddPill/FrequencyChips';
@@ -67,6 +68,7 @@ const EditPill = () => {
   const [dosage, setDosage] = useState('');
   const [type, setType] = useState('Tablet');
   const [frequency, setFrequency] = useState('Her Gün');
+  const [mealRelation, setMealRelation] = useState('none');
   const [time, setTime] = useState('09:00');
   const [notes, setNotes] = useState('');
   const [prospectus, setProspectus] = useState('');
@@ -115,6 +117,7 @@ const EditPill = () => {
       setDosage(pill.dosage || '');
       setType(pill.type || 'Tablet');
       setFrequency(pill.frequency || 'Her Gün');
+      setMealRelation(pill.mealRelation || 'none');
       setTime(pill.time || '09:00');
       setNotes(pill.notes || '');
       setProspectus(pill.prospectus || '');
@@ -220,6 +223,7 @@ const EditPill = () => {
         dosage: dosage.trim(),
         type,
         frequency,
+        mealRelation,
         time: isAsNeeded ? '' : time,
         notes: notes.trim(),
         prospectus: prospectus.trim(),
@@ -366,8 +370,12 @@ const EditPill = () => {
             />
           </AnimatedReveal>
 
+          <AnimatedReveal index={6}>
+            <MealRelationField value={mealRelation} onChange={setMealRelation} />
+          </AnimatedReveal>
+
           {!isAsNeeded && (
-            <AnimatedReveal index={6}>
+            <AnimatedReveal index={7}>
               <TimePickerField
                 time={time}
                 onPress={openTimeModal}

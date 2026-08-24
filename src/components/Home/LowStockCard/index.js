@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { getStockEtaLabel } from '../../../common/stockHelpers';
 import styles from './styles';
 
 const LowStockCard = ({ pills = [] }) => {
@@ -14,7 +15,9 @@ const LowStockCard = ({ pills = [] }) => {
       <View style={styles.textWrap}>
         <Text style={styles.title}>Stok uyarısı</Text>
         <Text style={styles.subtitle}>
-          {pills.map(pill => `${pill.name} (${pill.stockQuantity})`).join(', ')} bitmeden yenileyin.
+          {pills
+            .map(pill => `${pill.name}: ${getStockEtaLabel(pill)}`)
+            .join(' • ')}
         </Text>
       </View>
     </View>

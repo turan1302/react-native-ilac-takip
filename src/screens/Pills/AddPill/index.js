@@ -50,6 +50,7 @@ import ScheduleExtras, {
   ProspectusField,
   StockFields,
 } from '../../../components/Pills/AddPill/ScheduleExtras';
+import { MealRelationField } from '../../../components/Pills/AddPill/MealRelationField';
 import styles, { COLORS } from './styles';
 
 const AddPill = () => {
@@ -61,6 +62,7 @@ const AddPill = () => {
   const [dosage, setDosage] = useState('');
   const [type, setType] = useState('Tablet');
   const [frequency, setFrequency] = useState('Her Gün');
+  const [mealRelation, setMealRelation] = useState('none');
   const [time, setTime] = useState('09:00');
   const [notes, setNotes] = useState('');
   const [prospectus, setProspectus] = useState('');
@@ -179,6 +181,7 @@ const AddPill = () => {
         dosage: dosage.trim(),
         type,
         frequency,
+        mealRelation,
         time: isAsNeeded ? '' : time,
         notes: notes.trim(),
         prospectus: prospectus.trim(),
@@ -282,8 +285,12 @@ const AddPill = () => {
             />
           </AnimatedReveal>
 
+          <AnimatedReveal index={6}>
+            <MealRelationField value={mealRelation} onChange={setMealRelation} />
+          </AnimatedReveal>
+
           {!isAsNeeded && (
-            <AnimatedReveal index={6}>
+            <AnimatedReveal index={7}>
               <TimePickerField
                 time={time}
                 onPress={openTimeModal}

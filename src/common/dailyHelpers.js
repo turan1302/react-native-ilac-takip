@@ -4,6 +4,7 @@ import {
   parseDateKeyParts,
   shiftDateKeyByDays,
 } from './pillHelpers';
+import { getMealRelationLabel } from './pillFormConstants';
 
 export const MONTH_NAMES = [
   'Ocak',
@@ -47,8 +48,10 @@ export const getDetailText = item => {
     return item.dosage;
   }
 
+  const meal = getMealRelationLabel(item.pill?.mealRelation);
   const label = item.pill.notes?.trim() || item.dosage;
-  return item.time ? `${label} • ${item.time}` : label;
+  const parts = [label, item.time, meal].filter(Boolean);
+  return parts.join(' • ');
 };
 
 const isPastScheduledTime = (timeStr, dateKey) => {
@@ -104,9 +107,11 @@ export const getPillStatus = (item, dateKey, intakeMap) => {
   return { status: 'pending' };
 };
 
-export const calculateWeeklyCompliance = async (pills, endDateKey, colors) => {
+export const calculateWeeklyStats = async (pills, endDateKey, colors) => {
   let total = 0;
   let taken = 0;
+  let missed = 0;
+  const today = getTodayDateKey();
 
   for (let offset = 6; offset >= 0; offset -= 1) {
     const dateKey = shiftDateKeyByDays(endDateKey, -offset);
@@ -127,11 +132,38 @@ export const calculateWeeklyCompliance = async (pills, endDateKey, colors) => {
       ...(asNeededSection?.items || []),
     ];
 
-    total += items.length;
-    taken += items.filter(item => item.isTaken).length;
+    items.forEach(item => {
+      if (item.asNeeded) {
+        if (item.isTaken) {
+          total += 1;
+          taken += 1;
+        }
+        return;
+      }
+
+      total += 1;
+
+      if (item.isTaken) {
+        taken += 1;
+        return;
+      }
+
+      const isDue =
+        dateKey < today ||
+        (dateKey === today && isPastScheduledTime(item.time, dateKey));
+
+      if (isDue) {
+        missed += 1;
+      }
+    });
   }
 
-  return total > 0 ? Math.round((taken / total) * 100) : 0;
+  return {
+    total,
+    taken,
+    missed,
+    compliance: total > 0 ? Math.round((taken / total) * 100) : 0,
+  };
 };
 
 const matchesSearchQuery = (item, query) => {
@@ -148,6 +180,7 @@ const matchesSearchQuery = (item, query) => {
     item.pill?.notes,
     item.pill?.prospectus,
     item.pill?.type,
+    getMealRelationLabel(item.pill?.mealRelation),
   ];
 
   return fields.some(field =>

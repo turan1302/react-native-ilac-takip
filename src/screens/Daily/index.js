@@ -25,7 +25,7 @@ import {
   parseDateKeyParts,
 } from '../../common/pillHelpers';
 import {
-  calculateWeeklyCompliance,
+  calculateWeeklyStats,
   filterSectionsByQuery,
 } from '../../common/dailyHelpers';
 import useDebounce from '../../hooks/useDebounce';
@@ -41,6 +41,7 @@ import PillSection from '../../components/Daily/PillSection';
 import SearchBar from '../../components/Daily/SearchBar';
 import SearchEmptyState from '../../components/Daily/SearchEmptyState';
 import StatsRow from '../../components/Daily/StatsRow';
+import MissedDoseCard from '../../components/Daily/MissedDoseCard';
 import styles, { COLORS } from './styles';
 
 const Daily = () => {
@@ -52,6 +53,7 @@ const Daily = () => {
   const [intakeMap, setIntakeMap] = useState(new Map());
   const [selectedDate, setSelectedDate] = useState(getTodayDateKey());
   const [weeklyCompliance, setWeeklyCompliance] = useState(0);
+  const [weeklyMissed, setWeeklyMissed] = useState(0);
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [tempDay, setTempDay] = useState(1);
   const [tempMonth, setTempMonth] = useState(1);
@@ -73,7 +75,7 @@ const Daily = () => {
       takenIds,
       selectedDate,
     );
-    const compliance = await calculateWeeklyCompliance(
+    const weeklyStats = await calculateWeeklyStats(
       pills,
       selectedDate,
       COLORS,
@@ -83,7 +85,8 @@ const Daily = () => {
     setSections(pillSections);
     setAsNeededSection(asNeeded);
     setIntakeMap(map);
-    setWeeklyCompliance(compliance);
+    setWeeklyCompliance(weeklyStats.compliance);
+    setWeeklyMissed(weeklyStats.missed);
   }, [selectedDate, activeProfileId]);
 
   useFocusEffect(
@@ -224,6 +227,12 @@ const Daily = () => {
               takenCount={takenCount}
             />
           </AnimatedReveal>
+
+          {hasPills ? (
+            <AnimatedReveal index={4} animationKey={revealKey}>
+              <MissedDoseCard missed={weeklyMissed} />
+            </AnimatedReveal>
+          ) : null}
 
           <AnimatedReveal index={4} animationKey={revealKey}>
             <CalendarStrip
