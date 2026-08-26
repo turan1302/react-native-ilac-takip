@@ -12,7 +12,38 @@
 		44BADD25178B785F121C640B /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		A11C10001AA00000000002 /* NextDoseWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000001 /* NextDoseWidget.swift */; };
+		A11C10001AA0000000000F /* NextDoseWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000005 /* NextDoseWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A11C10001AA00000000013 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000012 /* WidgetKit.framework */; };
+		A11C10001AA00000000015 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000014 /* SwiftUI.framework */; };
+		A11C10001AA00000000017 /* NextDoseWidgetModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000016 /* NextDoseWidgetModule.swift */; };
+		A11C10001AA00000000019 /* NextDoseWidgetBridge.m in Sources */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000018 /* NextDoseWidgetBridge.m */; };
+		A11C10001AA0000000001B /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = A11C10001AA00000000012 /* WidgetKit.framework */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		A11C10001AA00000000010 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 83CBB9F71A601CBA00E9B192 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = A11C10001AA00000000006;
+			remoteInfo = NextDoseWidget;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		A11C10001AA0000000000E /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A11C10001AA0000000000F /* NextDoseWidget.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
 		13B07F961A680F5B00A75B9A /* ilacTakip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ilacTakip.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -24,6 +55,15 @@
 		5DCACB8F33CDC322A6C60F78 /* libPods-ilacTakip.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-ilacTakip.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = ilacTakip/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = ilacTakip/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		A11C10001AA00000000001 /* NextDoseWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NextDoseWidget.swift; sourceTree = "<group>"; };
+		A11C10001AA00000000003 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		A11C10001AA00000000004 /* NextDoseWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = NextDoseWidget.entitlements; sourceTree = "<group>"; };
+		A11C10001AA00000000005 /* NextDoseWidget.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = NextDoseWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A11C10001AA00000000012 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = System/Library/Frameworks/WidgetKit.framework; sourceTree = SDKROOT; };
+		A11C10001AA00000000014 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = System/Library/Frameworks/SwiftUI.framework; sourceTree = SDKROOT; };
+		A11C10001AA00000000016 /* NextDoseWidgetModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = NextDoseWidgetModule.swift; path = ilacTakip/NextDoseWidgetModule.swift; sourceTree = "<group>"; };
+		A11C10001AA00000000018 /* NextDoseWidgetBridge.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = NextDoseWidgetBridge.m; path = ilacTakip/NextDoseWidgetBridge.m; sourceTree = "<group>"; };
+		A11C10001AA0000000001A /* ilacTakip.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; name = ilacTakip.entitlements; path = ilacTakip/ilacTakip.entitlements; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
 /* End PBXFileReference section */
 
@@ -33,6 +73,16 @@
 			buildActionMask = 2147483647;
 			files = (
 				0C80B921A6F3F58F76C31292 /* libPods-ilacTakip.a in Frameworks */,
+				A11C10001AA0000000001B /* WidgetKit.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A11C10001AA00000000009 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A11C10001AA00000000013 /* WidgetKit.framework in Frameworks */,
+				A11C10001AA00000000015 /* SwiftUI.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -44,6 +94,9 @@
 			children = (
 				13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
+				A11C10001AA00000000016 /* NextDoseWidgetModule.swift */,
+				A11C10001AA00000000018 /* NextDoseWidgetBridge.m */,
+				A11C10001AA0000000001A /* ilacTakip.entitlements */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
 				13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */,
@@ -55,6 +108,8 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
+				A11C10001AA00000000012 /* WidgetKit.framework */,
+				A11C10001AA00000000014 /* SwiftUI.framework */,
 				5DCACB8F33CDC322A6C60F78 /* libPods-ilacTakip.a */,
 			);
 			name = Frameworks;
@@ -71,6 +126,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07FAE1A68108700A75B9A /* ilacTakip */,
+				A11C10001AA0000000000D /* NextDoseWidget */,
 				832341AE1AAA6A7D00B99B32 /* Libraries */,
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
@@ -85,6 +141,7 @@
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* ilacTakip.app */,
+				A11C10001AA00000000005 /* NextDoseWidget.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -96,6 +153,16 @@
 				5709B34CF0A7D63546082F79 /* Pods-ilacTakip.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		A11C10001AA0000000000D /* NextDoseWidget */ = {
+			isa = PBXGroup;
+			children = (
+				A11C10001AA00000000001 /* NextDoseWidget.swift */,
+				A11C10001AA00000000003 /* Info.plist */,
+				A11C10001AA00000000004 /* NextDoseWidget.entitlements */,
+			);
+			path = NextDoseWidget;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -112,15 +179,34 @@
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				00EEFC60759A1932668264C0 /* [CP] Embed Pods Frameworks */,
 				E235C05ADACE081382539298 /* [CP] Copy Pods Resources */,
+				A11C10001AA0000000000E /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				A11C10001AA00000000011 /* PBXTargetDependency */,
 			);
 			name = ilacTakip;
 			productName = ilacTakip;
 			productReference = 13B07F961A680F5B00A75B9A /* ilacTakip.app */;
 			productType = "com.apple.product-type.application";
+		};
+		A11C10001AA00000000006 /* NextDoseWidget */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A11C10001AA0000000000C /* Build configuration list for PBXNativeTarget "NextDoseWidget" */;
+			buildPhases = (
+				A11C10001AA00000000007 /* Sources */,
+				A11C10001AA00000000009 /* Frameworks */,
+				A11C10001AA00000000008 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = NextDoseWidget;
+			productName = NextDoseWidget;
+			productReference = A11C10001AA00000000005 /* NextDoseWidget.appex */;
+			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
@@ -132,6 +218,9 @@
 				TargetAttributes = {
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1120;
+					};
+					A11C10001AA00000000006 = {
+						CreatedOnToolsVersion = 16.0;
 					};
 				};
 			};
@@ -149,6 +238,7 @@
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* ilacTakip */,
+				A11C10001AA00000000006 /* NextDoseWidget */,
 			);
 		};
 /* End PBXProject section */
@@ -161,6 +251,13 @@
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
 				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				44BADD25178B785F121C640B /* PrivacyInfo.xcprivacy in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A11C10001AA00000000008 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -255,10 +352,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
+				A11C10001AA00000000017 /* NextDoseWidgetModule.swift in Sources */,
+				A11C10001AA00000000019 /* NextDoseWidgetBridge.m in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A11C10001AA00000000007 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A11C10001AA00000000002 /* NextDoseWidget.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		A11C10001AA00000000011 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = A11C10001AA00000000006 /* NextDoseWidget */;
+			targetProxy = A11C10001AA00000000010 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
@@ -267,6 +382,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = ilacTakip/ilacTakip.entitlements;
 				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = K97MJB78KY;
 				ENABLE_BITCODE = NO;
@@ -297,6 +413,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = ilacTakip/ilacTakip.entitlements;
 				CURRENT_PROJECT_VERSION = 8;
 				DEVELOPMENT_TEAM = K97MJB78KY;
 				INFOPLIST_FILE = ilacTakip/Info.plist;
@@ -316,6 +433,57 @@
 				PRODUCT_NAME = ilacTakip;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
+			};
+			name = Release;
+		};
+		A11C10001AA0000000000A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = NextDoseWidget/NextDoseWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 8;
+				DEVELOPMENT_TEAM = K97MJB78KY;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NextDoseWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfbag.ilactakibi.NextDoseWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				APPLICATION_EXTENSION_API_ONLY = YES;
+			};
+			name = Debug;
+		};
+		A11C10001AA0000000000B /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_ENTITLEMENTS = NextDoseWidget/NextDoseWidget.entitlements;
+				CURRENT_PROJECT_VERSION = 8;
+				DEVELOPMENT_TEAM = K97MJB78KY;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = NextDoseWidget/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				PRODUCT_BUNDLE_IDENTIFIER = com.mfbag.ilactakibi.NextDoseWidget;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				APPLICATION_EXTENSION_API_ONLY = YES;
 			};
 			name = Release;
 		};
@@ -471,6 +639,15 @@
 			buildConfigurations = (
 				13B07F941A680F5B00A75B9A /* Debug */,
 				13B07F951A680F5B00A75B9A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A11C10001AA0000000000C /* Build configuration list for PBXNativeTarget "NextDoseWidget" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A11C10001AA0000000000A /* Debug */,
+				A11C10001AA0000000000B /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

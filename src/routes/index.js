@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { navigationRef } from '../common/NavigationService';
 import Splash from "../screens/Splash";
 import OnBoard from "../screens/OnBoard";
+import NextDose from "../screens/NextDose";
 import WelcomeNavigator from "./WelcomeNavigator";
 import AddPill from "../screens/Pills/AddPill";
 import EditPill from "../screens/Pills/EditPill";
@@ -32,6 +33,11 @@ const Routes = () => {
                     options={{ gestureEnabled: false, animation: 'fade' }}
                 />
                 <Stack.Screen name={'OnBoard'} component={OnBoard} />
+                <Stack.Screen
+                    name={'NextDose'}
+                    component={NextDose}
+                    options={{ gestureEnabled: false, animation: 'fade' }}
+                />
                 <Stack.Screen name={"AddPill"} component={AddPill} />
                 <Stack.Screen name={"EditPill"} component={EditPill} />
                 <Stack.Screen name={"Notifications"} component={Notifications} />

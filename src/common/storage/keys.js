@@ -12,6 +12,7 @@ export const ONBOARD_SHOW_KEY = 'onboard_show';
 export const QUIET_HOURS_ENABLED_KEY = 'quiet_hours_enabled';
 export const QUIET_HOURS_START_KEY = 'quiet_hours_start';
 export const QUIET_HOURS_END_KEY = 'quiet_hours_end';
+export const SYMPTOM_DIARY_KEY = 'symptom_diary_entries';
 
 export const MANAGED_STORAGE_KEYS = [
   PILLS_STORAGE_KEY,
@@ -25,4 +26,5 @@ export const MANAGED_STORAGE_KEYS = [
   QUIET_HOURS_ENABLED_KEY,
   QUIET_HOURS_START_KEY,
   QUIET_HOURS_END_KEY,
+  SYMPTOM_DIARY_KEY,
 ];

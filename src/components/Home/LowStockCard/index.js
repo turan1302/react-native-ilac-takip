@@ -13,7 +13,7 @@ const LowStockCard = ({ pills = [] }) => {
     <View style={styles.card}>
       <Feather name="alert-triangle" size={18} color="#B45309" />
       <View style={styles.textWrap}>
-        <Text style={styles.title}>Stok uyarısı</Text>
+        <Text style={styles.title}>Reçeteyi yenile</Text>
         <Text style={styles.subtitle}>
           {pills
             .map(pill => `${pill.name}: ${getStockEtaLabel(pill)}`)

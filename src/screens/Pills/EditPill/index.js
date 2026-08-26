@@ -35,6 +35,7 @@ import {
 } from '../../../common/pillHelpers';
 import {
   cancelPillReminder,
+  rescheduleAllReminders,
   schedulePillReminder,
 } from '../../../common/NotificationService';
 import DatePickerModal from '../../../components/Program/DatePickerModal';
@@ -275,6 +276,7 @@ const EditPill = () => {
               await removeIntakeReportsForPill(pillId);
               await removeDismissalsForPill(pillId);
               await cancelPillReminder(pillId);
+              await rescheduleAllReminders();
 
               Toast.show({
                 type: ALERT_TYPE.SUCCESS,

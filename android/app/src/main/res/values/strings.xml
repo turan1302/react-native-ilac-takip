@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">İlaç Takibi</string>
+    <string name="widget_name">Sıradaki ilaç</string>
+    <string name="widget_description">Bugünün sıradaki ilacı, tek dokunuşla Aldım</string>
 </resources>

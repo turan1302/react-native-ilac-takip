@@ -10,7 +10,7 @@ import notifee, {
   TriggerType,
 } from '@notifee/react-native';
 import { getPillById, getPills, isLowStock } from './PillStorage';
-import { getStockEtaLabel } from './stockHelpers';
+import { getDaysUntilStockRunsOut, getStockEtaLabel } from './stockHelpers';
 import { getRemindersEnabled } from './ReminderStorage';
 import { getTodayDateKey, setPillIntakeStatus } from './IntakeStorage';
 import {
@@ -25,10 +25,15 @@ import {
   getQuietHoursSettings,
   isTimeInQuietHours,
 } from './QuietHoursStorage';
+import { joinNames, REFILL_DAYS_BEFORE } from './nextDoseHelpers';
+import { markDosesTaken } from './DoseLinking';
+import { clearHomeSurfaces, syncHomeSurfaces } from './WidgetService';
 
 const CHANNEL_ID = 'medication-reminders';
 const CATEGORY_ID = 'medication-reminder';
+const GROUPED_CATEGORY_ID = 'medication-reminder-group';
 const SCHEDULE_DAYS_AHEAD = 7;
+const REFILL_HOUR = 10;
 
 const shouldSchedulePill = pill => {
   if (isAsNeededFrequency(pill.frequency)) {
@@ -116,24 +121,83 @@ const iosReminderStyle = {
   },
 };
 
+const reminderActions = [
+  { title: 'Aldım', pressAction: { id: 'take_all' } },
+  { title: '10 dk sonra', pressAction: { id: 'snooze_10' } },
+  { title: 'Bugün atla', pressAction: { id: 'skip_today' } },
+];
+
+const toItemsPayload = items =>
+  JSON.stringify(
+    items.map(item => ({
+      pillId: String(item.pill.id),
+      time: item.time || '',
+    })),
+  );
+
 const buildNotification = (pill, time, id) => ({
   id,
-  title: 'İlaç Hatırlatması',
-  body: getNotificationBody(pill, time),
+  title: 'İlaç saati',
+  body: `${getNotificationBody(pill, time)} Hadi al.`,
   data: {
     pillId: String(pill.id),
     time: time || '',
+    items: toItemsPayload([{ pill, time }]),
   },
   android: {
     ...androidReminderStyle,
-    actions: [
-      { title: '10 dk sonra', pressAction: { id: 'snooze_10' } },
-      { title: 'Daha sonra', pressAction: { id: 'snooze_60' } },
-      { title: 'Bugün atla', pressAction: { id: 'skip_today' } },
-    ],
+    actions: reminderActions,
   },
   ios: iosReminderStyle,
 });
+
+const buildGroupedNotification = (items, id) => {
+  const time = items[0]?.time || '';
+  const names = joinNames(items.map(item => item.pill.name));
+
+  return {
+    id,
+    title: 'İlaç saati',
+    body: `${names} alma zamanı (${time}). Hadi al.`,
+    data: {
+      grouped: '1',
+      time,
+      items: toItemsPayload(items),
+      pillId: String(items[0]?.pill?.id || ''),
+    },
+    android: {
+      ...androidReminderStyle,
+      actions: reminderActions,
+    },
+    ios: {
+      ...iosReminderStyle,
+      categoryId: GROUPED_CATEGORY_ID,
+    },
+  };
+};
+
+const buildRefillNotification = (pill, days, id) => {
+  const body =
+    days <= 0
+      ? `${pill.name} bitti. Eczaneden / reçeteden yenile.`
+      : `${pill.name} ≈ ${days} gün sonra biter. Reçeteyi yenile.`;
+
+  return {
+    id,
+    title: 'Eczane hatırlatması',
+    body,
+    data: { refill: '1', pillId: String(pill.id) },
+    android: {
+      ...androidReminderStyle,
+      category: AndroidCategory.REMINDER,
+      actions: [],
+    },
+    ios: {
+      ...iosReminderStyle,
+      categoryId: undefined,
+    },
+  };
+};
 
 const isNotificationAuthorized = authorizationStatus =>
   authorizationStatus === AuthorizationStatus.AUTHORIZED ||
@@ -323,8 +387,16 @@ export const initializeNotifications = async () => {
       {
         id: CATEGORY_ID,
         actions: [
+          { id: 'take_all', title: 'Aldım' },
           { id: 'snooze_10', title: '10 dk sonra' },
-          { id: 'snooze_60', title: 'Daha sonra' },
+          { id: 'skip_today', title: 'Bugün atla' },
+        ],
+      },
+      {
+        id: GROUPED_CATEGORY_ID,
+        actions: [
+          { id: 'take_all', title: 'Aldım' },
+          { id: 'snooze_10', title: '10 dk sonra' },
           { id: 'skip_today', title: 'Bugün atla' },
         ],
       },
@@ -380,29 +452,91 @@ const scheduleExactNotification = async (notification, timestamp, useExactAlarm)
 };
 
 const buildDigestNotification = (items, timestamp) => {
-  const names = items
-    .map(item =>
-      item.time ? `${item.pill.name} (${item.time})` : item.pill.name,
-    )
-    .join(', ');
+  const names = joinNames(items.map(item => item.pill.name));
 
   return {
     id: `digest_${timestamp}`,
-    title: 'Sabah hatırlatması',
-    body: `Sessiz saatlerdeki ilaçlarınız: ${names}`,
-    data: { digest: '1' },
-    android: androidReminderStyle,
+    title: 'Hadi, ilaçlarını al',
+    body: `Sessiz saatler bitti: ${names}`,
+    data: {
+      digest: '1',
+      grouped: '1',
+      items: toItemsPayload(items),
+      pillId: String(items[0]?.pill?.id || ''),
+      time: items[0]?.time || '',
+    },
+    android: {
+      ...androidReminderStyle,
+      actions: reminderActions,
+    },
     ios: {
       ...iosReminderStyle,
-      categoryId: undefined,
+      categoryId: GROUPED_CATEGORY_ID,
     },
   };
+};
+
+const uniquifyDoseItems = items => {
+  const uniqueItems = [];
+  const seen = new Set();
+
+  items.forEach(item => {
+    const key = `${item.pill.id}_${item.time}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      uniqueItems.push(item);
+    }
+  });
+
+  return uniqueItems;
+};
+
+const getActionDoseItems = async data => {
+  if (data?.items) {
+    try {
+      const parsed = typeof data.items === 'string' ? JSON.parse(data.items) : data.items;
+      if (Array.isArray(parsed) && parsed.length) {
+        const items = [];
+        for (const row of parsed) {
+          const pill = await getPillById(row.pillId);
+          if (pill) {
+            items.push({ pill, time: row.time || '' });
+          }
+        }
+        if (items.length) {
+          return items;
+        }
+      }
+    } catch (error) {
+      console.warn('getActionDoseItems:', error);
+    }
+  }
+
+  if (data?.pillId) {
+    const pill = await getPillById(data.pillId);
+    return pill ? [{ pill, time: data.time || '' }] : [];
+  }
+
+  return [];
+};
+
+const getNextRefillDate = now => {
+  const todayAtTen = new Date(now.getFullYear(), now.getMonth(), now.getDate(), REFILL_HOUR, 0, 0, 0);
+
+  if (todayAtTen.getTime() > now.getTime()) {
+    return todayAtTen;
+  }
+
+  const tomorrow = new Date(todayAtTen);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow;
 };
 
 const isPillTriggerId = (triggerId, pillId) =>
   triggerId === pillId ||
   triggerId.startsWith(`dose_${pillId}_`) ||
-  triggerId.startsWith(`snooze_${pillId}_`);
+  triggerId.startsWith(`snooze_${pillId}_`) ||
+  triggerId.startsWith(`refill_${pillId}_`);
 
 export const cancelPillReminder = async pillId => {
   if (!pillId) {
@@ -485,34 +619,44 @@ export const handleNotificationAction = async ({ type, detail }) => {
   }
 
   const actionId = detail.pressAction?.id;
-  const pillId = detail.notification?.data?.pillId;
-  const time = detail.notification?.data?.time || '';
+  const items = await getActionDoseItems(detail.notification?.data);
 
-  if (!pillId || !actionId) {
-    return;
-  }
-
-  const pill = await getPillById(pillId);
-
-  if (!pill) {
+  if (!actionId || !items.length) {
     return;
   }
 
   const today = getTodayDateKey();
 
+  if (actionId === 'take' || actionId === 'take_all') {
+    const takenPills = await markDosesTaken(items);
+    await Promise.all(takenPills.map(pill => notifyLowStockIfNeeded(pill)));
+    await rescheduleAllReminders();
+    return;
+  }
+
   if (actionId === 'skip_today') {
-    await setPillIntakeStatus(pill, today, { status: 'skipped', time });
+    await Promise.all(
+      items.map(({ pill, time }) =>
+        setPillIntakeStatus(pill, today, { status: 'skipped', time }),
+      ),
+    );
+    await rescheduleAllReminders();
     return;
   }
 
   if (actionId === 'snooze_10' || actionId === 'snooze_60') {
     const minutes = actionId === 'snooze_10' ? 10 : 60;
-    await setPillIntakeStatus(pill, today, {
-      status: 'postponed',
-      time,
-      postponeUntil: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
-    });
-    await scheduleSnoozeReminder(pill, time, minutes);
+    await Promise.all(
+      items.map(async ({ pill, time }) => {
+        await setPillIntakeStatus(pill, today, {
+          status: 'postponed',
+          time,
+          postponeUntil: new Date(Date.now() + minutes * 60 * 1000).toISOString(),
+        });
+        await scheduleSnoozeReminder(pill, time, minutes);
+      }),
+    );
+    await syncHomeSurfaces();
   }
 };
 
@@ -531,12 +675,15 @@ export const rescheduleAllReminders = async () => {
 
   if (!remindersEnabled) {
     await clearAllNotificationSchedules();
+    await clearHomeSurfaces();
+    await syncHomeSurfaces();
     return { scheduled: 0, failed: 0 };
   }
 
   const notificationsGranted = await hasNotificationPermission();
 
   if (!notificationsGranted) {
+    await syncHomeSurfaces();
     return { scheduled: 0, failed: 0, permissionDenied: true };
   }
 
@@ -546,6 +693,7 @@ export const rescheduleAllReminders = async () => {
   ]);
   const now = new Date();
   const digestMap = new Map();
+  const timeBuckets = new Map();
   let scheduled = 0;
   let failed = 0;
 
@@ -574,26 +722,11 @@ export const rescheduleAllReminders = async () => {
           continue;
         }
 
-        const dateStamp = formatDateKey(date).replace(/-/g, '');
-        const id = toNotificationId('dose', pill.id, slot.time, dateStamp);
-
-        try {
-          const result = await scheduleExactNotification(
-            buildNotification(pill, slot.time, id),
-            date.getTime(),
-            true,
-          );
-          pillScheduled = true;
-          await upsertNotificationSchedule({
-            pill,
-            trigger: result.trigger,
-            useExactAlarm: result.useExactAlarm,
-            notificationId: id,
-            repeatFrequency: 'ONCE',
-          });
-        } catch (error) {
-          console.warn('schedule dose failed:', pill.id, error);
-        }
+        const timestamp = date.getTime();
+        const bucket = timeBuckets.get(timestamp) || [];
+        bucket.push({ pill, time: slot.time });
+        timeBuckets.set(timestamp, bucket);
+        pillScheduled = true;
       }
     }
 
@@ -604,17 +737,40 @@ export const rescheduleAllReminders = async () => {
     }
   }
 
-  for (const [timestamp, items] of digestMap.entries()) {
-    const uniqueItems = [];
-    const seen = new Set();
+  for (const [timestamp, bucketItems] of timeBuckets.entries()) {
+    const uniqueItems = uniquifyDoseItems(bucketItems);
+    const dateStamp = formatDateKey(new Date(timestamp)).replace(/-/g, '');
+    const timeStamp = (uniqueItems[0]?.time || '').replace(':', '');
+    const id =
+      uniqueItems.length === 1
+        ? toNotificationId('dose', uniqueItems[0].pill.id, uniqueItems[0].time, dateStamp)
+        : `dose_group_${timeStamp}_${dateStamp}`;
+    const notification =
+      uniqueItems.length === 1
+        ? buildNotification(uniqueItems[0].pill, uniqueItems[0].time, id)
+        : buildGroupedNotification(uniqueItems, id);
 
-    items.forEach(item => {
-      const key = `${item.pill.id}_${item.time}`;
-      if (!seen.has(key)) {
-        seen.add(key);
-        uniqueItems.push(item);
-      }
-    });
+    try {
+      const result = await scheduleExactNotification(notification, timestamp, true);
+
+      await Promise.all(
+        uniqueItems.map(item =>
+          upsertNotificationSchedule({
+            pill: item.pill,
+            trigger: result.trigger,
+            useExactAlarm: result.useExactAlarm,
+            notificationId: `${id}_${item.pill.id}`,
+            repeatFrequency: 'ONCE',
+          }),
+        ),
+      );
+    } catch (error) {
+      console.warn('schedule dose failed:', error);
+    }
+  }
+
+  for (const [timestamp, items] of digestMap.entries()) {
+    const uniqueItems = uniquifyDoseItems(items);
 
     try {
       await scheduleExactNotification(
@@ -626,6 +782,31 @@ export const rescheduleAllReminders = async () => {
       console.warn('schedule digest failed:', error);
     }
   }
+
+  const refillAt = getNextRefillDate(now);
+
+  for (const pill of pills) {
+    const days = getDaysUntilStockRunsOut(pill);
+
+    if (days == null || days > REFILL_DAYS_BEFORE) {
+      continue;
+    }
+
+    const dateStamp = formatDateKey(refillAt).replace(/-/g, '');
+    const id = toNotificationId('refill', pill.id, '', dateStamp);
+
+    try {
+      await scheduleExactNotification(
+        buildRefillNotification(pill, days, id),
+        refillAt.getTime(),
+        true,
+      );
+    } catch (error) {
+      console.warn('schedule refill failed:', pill.id, error);
+    }
+  }
+
+  await syncHomeSurfaces();
 
   return { scheduled, failed };
 };
@@ -642,6 +823,8 @@ export const cancelAllReminders = async () => {
       triggerIds.map(triggerId => notifee.cancelTriggerNotification(triggerId)),
     );
     await clearAllNotificationSchedules();
+    await clearHomeSurfaces();
+    await syncHomeSurfaces();
   } catch (error) {
     console.warn('cancelAllReminders failed:', error);
   }

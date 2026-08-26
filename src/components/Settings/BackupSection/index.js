@@ -1,62 +1,101 @@
 import React, { useState } from 'react';
+import { Alert, Platform, View } from 'react-native';
 import {
-  Alert,
-  Modal,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { restoreBackup, shareBackup } from '../../../common/BackupService';
+  pickBackupFile,
+  readLocalBackupFile,
+  restoreBackup,
+  shareBackup,
+} from '../../../common/BackupService';
 import { rescheduleAllReminders } from '../../../common/NotificationService';
 import SettingsRow from '../SettingsRow';
-import styles from './styles';
+
+const SAVE_HINT =
+  Platform.OS === 'ios'
+    ? 'Açılan ekranda “Dosyalara Kaydet” deyin. Uygulamayı sildikten sonra bu dosyayı seçerek geri yükleyebilirsiniz.'
+    : 'Açılan ekranda İndirilenler veya Drive’a kaydedin. Uygulamayı sildikten sonra bu dosyayı seçerek geri yükleyebilirsiniz.';
 
 const BackupSection = () => {
-  const insets = useSafeAreaInsets();
-  const [importVisible, setImportVisible] = useState(false);
-  const [importText, setImportText] = useState('');
   const [busy, setBusy] = useState(false);
 
   const handleExport = async () => {
     try {
-      await shareBackup();
+      const result = await shareBackup();
+      if (result.action === 'cancelled') {
+        return;
+      }
+
+      Alert.alert('Yedek dosyası hazır', SAVE_HINT);
     } catch (error) {
-      Alert.alert('Yedek alınamadı', 'Paylaşım iptal edildi veya bir hata oluştu.');
+      Alert.alert(
+        'Yedek alınamadı',
+        'JSON dosyası paylaşılamadı. Uygulamayı yeniden derleyip tekrar deneyin.',
+      );
     }
   };
 
-  const handleImport = async () => {
+  const applyRestore = async text => {
     try {
       setBusy(true);
-      await restoreBackup(importText);
-      await rescheduleAllReminders();
-      setImportVisible(false);
-      setImportText('');
+      await restoreBackup(text);
+      try {
+        await rescheduleAllReminders();
+      } catch (error) {
+        console.warn('reschedule after restore failed:', error);
+      }
       Alert.alert(
         'Yedek geri yüklendi',
         'İlaç listeniz ve alım geçmişiniz geri yüklendi.',
       );
     } catch (error) {
+      const message = error?.message || '';
+      if (message === 'EMPTY_BACKUP' || message === 'EMPTY_FILE') {
+        Alert.alert(
+          'Boş yedek',
+          'Seçilen dosyada ilaç kaydı yok. İlaçlar kayıtlıyken Yedek al deyip oluşan JSON dosyasını seçin.',
+        );
+        return;
+      }
+
       Alert.alert(
-        'Geçersiz yedek',
-        'Yapıştırdığınız metin İlaç Takibi yedeği değil. Dışa aktardığınız metnin tamamını kopyalayın.',
+        'Yedek uygulanamadı',
+        'ilac-takibi-yedek.json dosyasını seçin. Dosyayı Files, İndirilenler veya Drive içinden seçin.',
       );
     } finally {
       setBusy(false);
     }
   };
 
-  const confirmImport = () => {
-    Alert.alert(
-      'Yedekten geri yükle',
-      'Mevcut ilaç listeniz bu yedekle değiştirilecek. Devam edilsin mi?',
-      [
-        { text: 'İptal', style: 'cancel' },
-        { text: 'Geri yükle', onPress: handleImport },
-      ],
-    );
+  const handleRestorePress = async () => {
+    if (busy) {
+      return;
+    }
+
+    try {
+      const picked = await pickBackupFile();
+      if (!picked) {
+        return;
+      }
+
+      Alert.alert(
+        'Yedekten geri yükle',
+        'Mevcut ilaç listeniz seçilen dosyadaki yedekle değiştirilecek. Devam edilsin mi?',
+        [
+          { text: 'İptal', style: 'cancel' },
+          {
+            text: 'Geri yükle',
+            onPress: async () => {
+              const stored = await readLocalBackupFile();
+              await applyRestore(stored || picked);
+            },
+          },
+        ],
+      );
+    } catch (error) {
+      Alert.alert(
+        'Dosya seçilemedi',
+        'JSON dosyasını seçmek için uygulamayı yeniden derleyin.',
+      );
+    }
   };
 
   return (
@@ -64,49 +103,15 @@ const BackupSection = () => {
       <SettingsRow
         icon="upload"
         title="Yedek al"
-        subtitle="İlaç listesi ve alım geçmişini dosya olarak paylaşın"
+        subtitle="JSON dosyasını Files, Drive veya İndirilenler’e kaydedin"
         onPress={handleExport}
       />
       <SettingsRow
         icon="download"
         title="Yedekten geri yükle"
-        subtitle="Başka telefondan aldığınız yedeği yapıştırın"
-        onPress={() => setImportVisible(true)}
+        subtitle="Kayıtlı JSON dosyasını seçin"
+        onPress={handleRestorePress}
       />
-
-      <Modal
-        visible={importVisible}
-        animationType="slide"
-        onRequestClose={() => setImportVisible(false)}
-      >
-        <View style={[styles.modal, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
-          <Text style={styles.modalTitle}>Yedekten geri yükle</Text>
-          <Text style={styles.modalHint}>
-            Dışa aktardığınız metnin tamamını, ---JSON--- satırı dahil yapıştırın.
-          </Text>
-          <TextInput
-            style={styles.input}
-            multiline
-            value={importText}
-            onChangeText={setImportText}
-            placeholder="Yedek metnini yapıştırın"
-            textAlignVertical="top"
-          />
-          <TouchableOpacity
-            style={styles.primaryButton}
-            onPress={confirmImport}
-            disabled={busy || !importText.trim()}
-          >
-            <Text style={styles.primaryButtonText}>Geri yükle</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.secondaryButton}
-            onPress={() => setImportVisible(false)}
-          >
-            <Text style={styles.secondaryButtonText}>Vazgeç</Text>
-          </TouchableOpacity>
-        </View>
-      </Modal>
     </View>
   );
 };

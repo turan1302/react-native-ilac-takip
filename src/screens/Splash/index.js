@@ -5,6 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import * as NavigationService from '../../common/NavigationService';
 import { migrateAppStorage } from '../../common/storage/migrateStorage';
 import { ONBOARD_SHOW_KEY } from '../../common/storage/keys';
+import { getTodayNudgeSnapshot } from '../../common/nextDoseHelpers';
 import LoadingFooter from '../../components/Splash/LoadingFooter';
 import PillLogo from '../../components/Splash/PillLogo';
 import SplashIntro from '../../components/Splash/SplashIntro';
@@ -27,7 +28,13 @@ const Splash = () => {
       const onboardShow = await AsyncStorage.getItem(ONBOARD_SHOW_KEY);
 
       if (onboardShow === 'true') {
-        NavigationService.reset();
+        const snapshot = await getTodayNudgeSnapshot();
+
+        if (snapshot.kind === 'overdue' || snapshot.kind === 'upcoming') {
+          NavigationService.replace('NextDose');
+        } else {
+          NavigationService.reset();
+        }
       } else {
         NavigationService.replace('OnBoard');
       }

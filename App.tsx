@@ -9,8 +9,11 @@ import { ProfileProvider } from './src/common/ProfileContext';
 import {
     handleNotificationAction,
     initializeNotifications,
+    notifyLowStockIfNeeded,
     rescheduleAllReminders,
 } from './src/common/NotificationService';
+import { subscribeDoseDeepLinks } from './src/common/DoseLinking';
+import { syncHomeSurfaces } from './src/common/WidgetService';
 
 const App = () => {
 
@@ -51,17 +54,26 @@ const App = () => {
         }
 
         const permissionResult = await initializeNotifications();
-        if (cancelled || !permissionResult.notificationsGranted) {
+        if (cancelled) {
           return;
         }
 
-        await rescheduleAllReminders();
+        if (permissionResult.notificationsGranted) {
+          await rescheduleAllReminders();
+        } else {
+          await syncHomeSurfaces();
+        }
       } catch (error) {
         console.warn('Notification setup failed:', error);
       }
     };
 
     setupNotifications();
+
+    const unsubscribeDeepLinks = subscribeDoseDeepLinks(async takenPills => {
+      await Promise.all(takenPills.map(pill => notifyLowStockIfNeeded(pill)));
+      await rescheduleAllReminders();
+    });
 
     const unsubscribe = notifee.onForegroundEvent(event => {
       if (event.type === EventType.ACTION_PRESS) {
@@ -84,6 +96,7 @@ const App = () => {
       appStateSubscription?.remove();
       appResume.remove();
       unsubscribe();
+      unsubscribeDeepLinks();
     };
   }, []);
 

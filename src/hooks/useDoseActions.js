@@ -2,6 +2,7 @@ import { Alert } from 'react-native';
 import { setPillIntakeStatus } from '../common/IntakeStorage';
 import {
   notifyLowStockIfNeeded,
+  rescheduleAllReminders,
   scheduleSnoozeReminder,
 } from '../common/NotificationService';
 
@@ -13,6 +14,7 @@ const useDoseActions = (dateKey, reload) => {
     });
     await notifyLowStockIfNeeded(item.pill);
     await reload();
+    rescheduleAllReminders();
   };
 
   const skipDose = async item => {
@@ -21,6 +23,7 @@ const useDoseActions = (dateKey, reload) => {
       time: item.time || '',
     });
     await reload();
+    rescheduleAllReminders();
   };
 
   const snoozeDose = item => {
@@ -35,6 +38,7 @@ const useDoseActions = (dateKey, reload) => {
           });
           await scheduleSnoozeReminder(item.pill, item.time, 10);
           await reload();
+          rescheduleAllReminders();
         },
       },
       {
@@ -47,6 +51,7 @@ const useDoseActions = (dateKey, reload) => {
           });
           await scheduleSnoozeReminder(item.pill, item.time, 60);
           await reload();
+          rescheduleAllReminders();
         },
       },
       { text: 'Vazgeç', style: 'cancel' },

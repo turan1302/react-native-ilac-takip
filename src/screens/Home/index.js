@@ -4,9 +4,13 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { getPillsForProfile, isLowStock } from '../../common/PillStorage';
 import {
+  getIntakeMapForDate,
   getTakenDoseKeysForDate,
   getTodayDateKey,
 } from '../../common/IntakeStorage';
+import { markDosesTaken } from '../../common/DoseLinking';
+import { notifyLowStockIfNeeded, rescheduleAllReminders } from '../../common/NotificationService';
+import { getNudgeState, getScheduledDoseItems } from '../../common/nextDoseHelpers';
 import { buildPillSections } from '../../common/pillHelpers';
 import { useProfile } from '../../common/ProfileContext';
 import useDoseActions from '../../hooks/useDoseActions';
@@ -15,10 +19,11 @@ import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import AddPillFab from '../../components/Home/AddPillFab';
 import EmptyState from '../../components/Home/EmptyState';
 import Header from '../../components/Home/Header';
+import LowStockCard from '../../components/Home/LowStockCard';
+import NudgeCard from '../../components/Home/NudgeCard';
 import PillSection from '../../components/Home/PillSection';
 import SectionHeader from '../../components/Home/SectionHeader';
 import TodaySummary from '../../components/Home/TodaySummary';
-import LowStockCard from '../../components/Home/LowStockCard';
 import styles, { COLORS } from './styles';
 
 const Home = () => {
@@ -28,10 +33,14 @@ const Home = () => {
   const [sections, setSections] = useState([]);
   const [asNeededSection, setAsNeededSection] = useState(null);
   const [lowStockPills, setLowStockPills] = useState([]);
+  const [intakeMap, setIntakeMap] = useState(null);
 
   const loadPills = useCallback(async () => {
-    const pills = await getPillsForProfile(activeProfileId);
-    const takenIds = await getTakenDoseKeysForDate(today);
+    const [pills, takenIds, nextIntakeMap] = await Promise.all([
+      getPillsForProfile(activeProfileId),
+      getTakenDoseKeysForDate(today),
+      getIntakeMapForDate(today),
+    ]);
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
       pills,
       COLORS,
@@ -42,6 +51,7 @@ const Home = () => {
     setSections(pillSections);
     setAsNeededSection(asNeeded);
     setLowStockPills(pills.filter(isLowStock));
+    setIntakeMap(nextIntakeMap);
   }, [today, activeProfileId]);
 
   useFocusEffect(
@@ -63,6 +73,18 @@ const Home = () => {
 
   const { takeDose, skipDose, snoozeDose } = useDoseActions(today, loadPills);
   const revealKey = useRevealOnFocus();
+
+  const nudgeSnapshot = useMemo(
+    () => getNudgeState(getScheduledDoseItems(sections), new Date(), intakeMap),
+    [sections, intakeMap],
+  );
+
+  const handleTakeNudge = async () => {
+    const takenPills = await markDosesTaken(nudgeSnapshot.items);
+    await Promise.all(takenPills.map(pill => notifyLowStockIfNeeded(pill)));
+    await rescheduleAllReminders();
+    await loadPills();
+  };
 
   const handleAddPill = () => {
     navigation.navigate('AddPill');
@@ -91,6 +113,10 @@ const Home = () => {
         </AnimatedReveal>
 
         <AnimatedReveal index={1} animationKey={revealKey}>
+          <NudgeCard snapshot={nudgeSnapshot} onTake={handleTakeNudge} />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={2} animationKey={revealKey}>
           <TodaySummary
             progressPercent={progressPercent}
             takenCount={takenCount}
@@ -98,16 +124,16 @@ const Home = () => {
           />
         </AnimatedReveal>
 
-        <AnimatedReveal index={2} animationKey={revealKey}>
+        <AnimatedReveal index={3} animationKey={revealKey}>
           <LowStockCard pills={lowStockPills} />
         </AnimatedReveal>
 
-        <AnimatedReveal index={3} animationKey={revealKey} distance={12}>
+        <AnimatedReveal index={4} animationKey={revealKey} distance={12}>
           <SectionHeader onSeeAll={handleSeeAll} />
         </AnimatedReveal>
 
         {!hasPills ? (
-          <AnimatedReveal index={4} animationKey={revealKey}>
+          <AnimatedReveal index={5} animationKey={revealKey}>
             <EmptyState />
           </AnimatedReveal>
         ) : (
@@ -121,7 +147,7 @@ const Home = () => {
                 onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
                 animationKey={revealKey}
-                startIndex={4 + sectionIndex * 4}
+                startIndex={5 + sectionIndex * 4}
               />
             ))}
             {asNeededSection && (
@@ -132,7 +158,7 @@ const Home = () => {
                 onSnooze={snoozeDose}
                 onPressEdit={handleEditPill}
                 animationKey={revealKey}
-                startIndex={4 + sections.length * 4}
+                startIndex={5 + sections.length * 4}
               />
             )}
           </>

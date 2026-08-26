@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { ScrollView, StatusBar } from 'react-native';
+import { Alert, Platform, ScrollView, StatusBar } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import useReminders from '../../hooks/useReminders';
@@ -45,6 +45,12 @@ const Settings = () => {
         <AnimatedReveal index={1} animationKey={revealKey}>
           <SectionTitle title="UYGULAMA" />
           <AppVersionCard />
+          <SettingsRow
+            icon="edit-3"
+            title="Yan etki / not günlüğü"
+            subtitle="Kısa kayıt bırakın, doktor ziyaretinde paylaşın"
+            onPress={() => navigation.navigate('SymptomDiary')}
+          />
         </AnimatedReveal>
 
         <AnimatedReveal index={2} animationKey={revealKey}>
@@ -56,6 +62,19 @@ const Settings = () => {
           <SectionTitle title="BİLDİRİMLER" />
           <ReminderToggle enabled={remindersEnabled} onToggle={toggleReminders} />
           <QuietHoursSection />
+          <SettingsRow
+            icon="grid"
+            title="Ana ekran widget’ı"
+            subtitle="Sıradaki ilaç ve tek dokunuşla Aldım"
+            onPress={() =>
+              Alert.alert(
+                'Widget ekle',
+                Platform.OS === 'ios'
+                  ? 'Ana ekrana basılı tutun → Widget Ekle → İlaç Takibi → Sıradaki ilaç.'
+                  : 'Ana ekrana basılı tutun → Widget’lar → İlaç Takibi.',
+              )
+            }
+          />
         </AnimatedReveal>
 
         <AnimatedReveal index={4} animationKey={revealKey}>
