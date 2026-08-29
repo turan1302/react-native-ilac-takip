@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 import styles from './styles';
 
-const MissedDoseCard = ({ missed = 0 }) => {
+const MissedDoseCard = ({ missed = 0, onShare }) => {
   const hasMissed = missed > 0;
   const title = hasMissed
     ? `Bu hafta ${missed} doz kaçtı`
@@ -27,6 +27,19 @@ const MissedDoseCard = ({ missed = 0 }) => {
           {subtitle}
         </Text>
       </View>
+      {onShare ? (
+        <TouchableOpacity
+          onPress={onShare}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          accessibilityLabel="Haftalık özeti paylaş"
+        >
+          <Feather
+            name="share-2"
+            size={16}
+            color={hasMissed ? '#B45309' : '#047857'}
+          />
+        </TouchableOpacity>
+      ) : null}
     </View>
   );
 };

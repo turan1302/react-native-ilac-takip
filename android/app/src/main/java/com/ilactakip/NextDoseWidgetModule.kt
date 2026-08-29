@@ -97,17 +97,31 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
       try {
         val name = filename.ifBlank { BACKUP_FILE_NAME }
         val bytes = contents.toByteArray(Charsets.UTF_8)
-        backupFile().writeBytes(bytes)
-        val uri = saveToDownloads(name, bytes) ?: fileProviderUri()
+        val mime = mimeForName(name)
+        val isBackup = name.endsWith(".json", ignoreCase = true)
+        val file =
+          if (isBackup) {
+            backupFile().also { it.writeBytes(bytes) }
+          } else {
+            shareableFile(name).also { it.writeBytes(bytes) }
+          }
+        val uri =
+          if (isBackup) {
+            saveToDownloads(name, bytes, mime) ?: fileProviderUri(file)
+          } else {
+            fileProviderUri(file)
+          }
+        val subject = if (isBackup) "İlaç Takibi Yedeği" else name.substringBeforeLast('.')
+        val chooserTitle = if (isBackup) "Yedeği kaydet" else "Paylaş"
         val intent =
           Intent(Intent.ACTION_SEND).apply {
-            type = "application/json"
-            putExtra(Intent.EXTRA_SUBJECT, "İlaç Takibi Yedeği")
+            type = mime
+            putExtra(Intent.EXTRA_SUBJECT, subject)
             putExtra(Intent.EXTRA_STREAM, uri)
             clipData = ClipData.newRawUri(name, uri)
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
           }
-        startChooser(intent, "Yedeği kaydet")
+        startChooser(intent, chooserTitle)
         promise.resolve(true)
       } catch (error: Exception) {
         promise.reject("SHARE_FAILED", error)
@@ -205,14 +219,33 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
     return File(dir, BACKUP_FILE_NAME)
   }
 
-  private fun fileProviderUri(): Uri =
+  private fun shareableFile(name: String): File {
+    val dir = File(reactContext.cacheDir, "share")
+    if (!dir.exists()) {
+      dir.mkdirs()
+    }
+    return File(dir, name)
+  }
+
+  private fun mimeForName(name: String): String =
+    when {
+      name.endsWith(".txt", ignoreCase = true) -> "text/plain"
+      name.endsWith(".html", ignoreCase = true) -> "text/html"
+      else -> "application/json"
+    }
+
+  private fun fileProviderUri(file: File = backupFile()): Uri =
     FileProvider.getUriForFile(
       reactContext,
       "${BuildConfig.APPLICATION_ID}.fileprovider",
-      backupFile(),
+      file,
     )
 
-  private fun saveToDownloads(name: String, bytes: ByteArray): Uri? {
+  private fun saveToDownloads(
+    name: String,
+    bytes: ByteArray,
+    mime: String = "application/json",
+  ): Uri? {
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) {
       return null
     }
@@ -221,7 +254,7 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
       val values =
         ContentValues().apply {
           put(MediaStore.Downloads.DISPLAY_NAME, name)
-          put(MediaStore.Downloads.MIME_TYPE, "application/json")
+          put(MediaStore.Downloads.MIME_TYPE, mime)
           put(MediaStore.Downloads.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
           put(MediaStore.Downloads.IS_PENDING, 1)
         }

@@ -12,14 +12,23 @@ import notifee, {
 import { getPillById, getPills, isLowStock } from './PillStorage';
 import { getDaysUntilStockRunsOut, getStockEtaLabel } from './stockHelpers';
 import { getRemindersEnabled } from './ReminderStorage';
-import { getTodayDateKey, setPillIntakeStatus } from './IntakeStorage';
+import {
+  getIntakeMapForDate,
+  getTodayDateKey,
+  setPillIntakeStatus,
+} from './IntakeStorage';
 import {
   clearAllNotificationSchedules,
   removeNotificationScheduleForPill,
   upsertNotificationSchedule,
 } from './NotificationStorage';
 import { formatDateKey, shouldShowPillOnDate } from './pillHelpers';
-import { getMealRelationLabel, getPillTimes, isAsNeededFrequency } from './pillFormConstants';
+import {
+  getDoseKey,
+  getMealRelationLabel,
+  getPillTimes,
+  isAsNeededFrequency,
+} from './pillFormConstants';
 import {
   getQuietHoursEndDate,
   getQuietHoursSettings,
@@ -34,6 +43,7 @@ const CATEGORY_ID = 'medication-reminder';
 const GROUPED_CATEGORY_ID = 'medication-reminder-group';
 const SCHEDULE_DAYS_AHEAD = 7;
 const REFILL_HOUR = 10;
+const FOLLOW_UP_MINUTES = 12;
 
 const shouldSchedulePill = pill => {
   if (isAsNeededFrequency(pill.frequency)) {
@@ -174,6 +184,130 @@ const buildGroupedNotification = (items, id) => {
       categoryId: GROUPED_CATEGORY_ID,
     },
   };
+};
+
+const buildFollowUpNotification = (items, id) => {
+  const time = items[0]?.time || '';
+  const names = joinNames(items.map(item => item.pill.name));
+  const waitLabel = `${FOLLOW_UP_MINUTES} dk`;
+
+  return {
+    id,
+    title: 'Hâlâ almadın',
+    body:
+      items.length === 1
+        ? `${items[0].pill.name} henüz alınmadı (${time}). ${waitLabel} geçti, hadi al.`
+        : `${names} henüz alınmadı (${time}). ${waitLabel} geçti, hadi al.`,
+    data: {
+      followUp: '1',
+      grouped: items.length > 1 ? '1' : '0',
+      time,
+      items: toItemsPayload(items),
+      pillId: String(items[0]?.pill?.id || ''),
+    },
+    android: {
+      ...androidReminderStyle,
+      actions: reminderActions,
+    },
+    ios: {
+      ...iosReminderStyle,
+      categoryId: items.length > 1 ? GROUPED_CATEGORY_ID : CATEGORY_ID,
+    },
+  };
+};
+
+const isDoseResolved = (intakeMap, pill, time) => {
+  const intake =
+    intakeMap.get(getDoseKey(pill.id, time)) || intakeMap.get(pill.id);
+
+  if (!intake) {
+    return false;
+  }
+
+  return (
+    intake.status === 'taken' ||
+    intake.taken ||
+    intake.status === 'skipped' ||
+    intake.status === 'missed' ||
+    intake.status === 'postponed'
+  );
+};
+
+const scheduleFollowUpNudges = async (pills, now, quiet) => {
+  const today = formatDateKey(now);
+  const intakeMap = await getIntakeMapForDate(today);
+  const buckets = new Map();
+
+  for (const pill of pills) {
+    if (!shouldSchedulePill(pill) || !shouldShowPillOnDate(pill, today)) {
+      continue;
+    }
+
+    for (const slot of getScheduleSlots(pill)) {
+      if (isDoseResolved(intakeMap, pill, slot.time)) {
+        continue;
+      }
+
+      const [hour, minute] = (slot.time || '09:00').split(':').map(Number);
+      const doseAt = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate(),
+        hour,
+        minute,
+        0,
+        0,
+      );
+
+      if (doseAt.getTime() > now.getTime()) {
+        continue;
+      }
+
+      if (isTimeInQuietHours(doseAt, quiet)) {
+        continue;
+      }
+
+      let followAt = new Date(
+        doseAt.getTime() + FOLLOW_UP_MINUTES * 60 * 1000,
+      );
+
+      if (isTimeInQuietHours(followAt, quiet)) {
+        followAt = getQuietHoursEndDate(followAt, quiet);
+      }
+
+      if (followAt.getTime() <= now.getTime()) {
+        continue;
+      }
+
+      const timestamp = followAt.getTime();
+      const bucket = buckets.get(timestamp) || [];
+      bucket.push({ pill, time: slot.time });
+      buckets.set(timestamp, bucket);
+    }
+  }
+
+  for (const [timestamp, bucketItems] of buckets.entries()) {
+    const uniqueItems = uniquifyDoseItems(bucketItems);
+    const timeStamp = (uniqueItems[0]?.time || '').replace(':', '');
+    const id =
+      uniqueItems.length === 1
+        ? toNotificationId(
+            'followup',
+            uniqueItems[0].pill.id,
+            uniqueItems[0].time,
+          )
+        : `followup_group_${timeStamp}`;
+
+    try {
+      await scheduleExactNotification(
+        buildFollowUpNotification(uniqueItems, id),
+        timestamp,
+        true,
+      );
+    } catch (error) {
+      console.warn('schedule follow-up failed:', error);
+    }
+  }
 };
 
 const buildRefillNotification = (pill, days, id) => {
@@ -536,6 +670,7 @@ const isPillTriggerId = (triggerId, pillId) =>
   triggerId === pillId ||
   triggerId.startsWith(`dose_${pillId}_`) ||
   triggerId.startsWith(`snooze_${pillId}_`) ||
+  triggerId.startsWith(`followup_${pillId}_`) ||
   triggerId.startsWith(`refill_${pillId}_`);
 
 export const cancelPillReminder = async pillId => {
@@ -781,6 +916,12 @@ export const rescheduleAllReminders = async () => {
     } catch (error) {
       console.warn('schedule digest failed:', error);
     }
+  }
+
+  try {
+    await scheduleFollowUpNudges(pills, now, quiet);
+  } catch (error) {
+    console.warn('schedule follow-up nudges failed:', error);
   }
 
   const refillAt = getNextRefillDate(now);

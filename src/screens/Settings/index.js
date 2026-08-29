@@ -13,6 +13,11 @@ import SettingsRow from '../../components/Settings/SettingsRow';
 import FamilySection from '../../components/Settings/FamilySection';
 import QuietHoursSection from '../../components/Settings/QuietHoursSection';
 import BackupSection from '../../components/Settings/BackupSection';
+import {
+  shareDiaryDoctorReport,
+  shareWeeklyAdherence,
+} from '../../common/ReportService';
+import { getTodayDateKey } from '../../common/IntakeStorage';
 import styles, { COLORS } from './styles';
 
 const Settings = () => {
@@ -28,6 +33,14 @@ const Settings = () => {
 
   const openLegalDocument = documentKey => {
     navigation.navigate('LegalDocument', { documentKey });
+  };
+
+  const handleShareReport = async (shareFn, title) => {
+    try {
+      await shareFn();
+    } catch (error) {
+      Alert.alert(title, error?.message || 'Rapor paylaşılamadı.');
+    }
   };
 
   return (
@@ -54,11 +67,37 @@ const Settings = () => {
         </AnimatedReveal>
 
         <AnimatedReveal index={2} animationKey={revealKey}>
+          <SectionTitle title="RAPORLAR" />
+          <SettingsRow
+            icon="bar-chart-2"
+            title="Haftalık uyum özeti"
+            subtitle="Alındı / kaçırıldı — paylaş veya Yazdır → PDF"
+            onPress={() =>
+              handleShareReport(
+                () => shareWeeklyAdherence(getTodayDateKey()),
+                'Haftalık özet paylaşılamadı',
+              )
+            }
+          />
+          <SettingsRow
+            icon="clipboard"
+            title="Doktor günlüğü"
+            subtitle="Not ve yan etkileri tek dosyada dışa aktar"
+            onPress={() =>
+              handleShareReport(
+                shareDiaryDoctorReport,
+                'Doktor günlüğü paylaşılamadı',
+              )
+            }
+          />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={3} animationKey={revealKey}>
           <SectionTitle title="AİLE MODU" />
           <FamilySection />
         </AnimatedReveal>
 
-        <AnimatedReveal index={3} animationKey={revealKey}>
+        <AnimatedReveal index={4} animationKey={revealKey}>
           <SectionTitle title="BİLDİRİMLER" />
           <ReminderToggle enabled={remindersEnabled} onToggle={toggleReminders} />
           <QuietHoursSection />
@@ -77,12 +116,12 @@ const Settings = () => {
           />
         </AnimatedReveal>
 
-        <AnimatedReveal index={4} animationKey={revealKey}>
+        <AnimatedReveal index={5} animationKey={revealKey}>
           <SectionTitle title="YEDEKLEME" />
           <BackupSection />
         </AnimatedReveal>
 
-        <AnimatedReveal index={5} animationKey={revealKey}>
+        <AnimatedReveal index={6} animationKey={revealKey}>
           <SectionTitle title="YASAL" />
           <SettingsRow
             icon="shield"

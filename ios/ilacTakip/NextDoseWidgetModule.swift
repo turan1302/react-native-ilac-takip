@@ -106,7 +106,8 @@ class NextDoseWidgetModule: NSObject {
   ) {
     DispatchQueue.main.async {
       do {
-        let fileURL = try self.writeBackupFile(contents)
+        let name = filename.isEmpty ? Self.backupFileName : filename
+        let fileURL = try self.writeShareFile(contents, filename: name)
         guard let presenter = Self.topViewController() else {
           resolve(true)
           return
@@ -221,8 +222,14 @@ class NextDoseWidgetModule: NSObject {
     resolve(UIPasteboard.general.string ?? "")
   }
 
-  private func writeBackupFile(_ contents: String) throws -> URL {
-    let fileURL = Self.backupFileURL()
+  private func writeShareFile(_ contents: String, filename: String) throws -> URL {
+    if filename.hasSuffix(".json") {
+      let fileURL = Self.backupFileURL()
+      try contents.write(to: fileURL, atomically: true, encoding: .utf8)
+      return fileURL
+    }
+
+    let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
     try contents.write(to: fileURL, atomically: true, encoding: .utf8)
     return fileURL
   }

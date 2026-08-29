@@ -5,7 +5,7 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import ProfileSwitcher from '../../shared/ProfileSwitcher';
 import styles, { COLORS } from './styles';
 
-const Header = ({ searchVisible, onToggleSearch }) => (
+const Header = ({ searchVisible, onToggleSearch, onShareWeekly }) => (
   <View style={styles.header}>
     <View style={styles.headerTitleRow}>
       <View style={styles.headerPillIcon}>
@@ -18,6 +18,15 @@ const Header = ({ searchVisible, onToggleSearch }) => (
     </View>
     <View style={styles.headerActions}>
       <ProfileSwitcher />
+      {onShareWeekly ? (
+        <TouchableOpacity
+          style={styles.iconButton}
+          onPress={onShareWeekly}
+          activeOpacity={0.7}
+        >
+          <Feather name="share-2" size={18} color={COLORS.textSecondary} />
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity
         style={[styles.iconButton, searchVisible && styles.iconButtonActive]}
         onPress={onToggleSearch}

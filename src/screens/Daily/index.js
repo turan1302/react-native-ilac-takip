@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useState } from 'react';
 import {
+  Alert,
   ScrollView,
   StatusBar,
   KeyboardAvoidingView,
@@ -42,6 +43,7 @@ import SearchBar from '../../components/Daily/SearchBar';
 import SearchEmptyState from '../../components/Daily/SearchEmptyState';
 import StatsRow from '../../components/Daily/StatsRow';
 import MissedDoseCard from '../../components/Daily/MissedDoseCard';
+import { shareWeeklyAdherence } from '../../common/ReportService';
 import styles, { COLORS } from './styles';
 
 const Daily = () => {
@@ -178,6 +180,17 @@ const Daily = () => {
     setSelectedDate(dateKey);
   };
 
+  const handleShareWeekly = async () => {
+    try {
+      await shareWeeklyAdherence(selectedDate);
+    } catch (error) {
+      Alert.alert(
+        'Paylaşılamadı',
+        error?.message || 'Haftalık uyum özeti oluşturulamadı.',
+      );
+    }
+  };
+
   const handleScrollBeginDrag = () => {
     Keyboard.dismiss();
   };
@@ -203,6 +216,7 @@ const Daily = () => {
             <Header
               searchVisible={searchVisible}
               onToggleSearch={handleToggleSearch}
+              onShareWeekly={handleShareWeekly}
             />
           </AnimatedReveal>
 
@@ -230,7 +244,10 @@ const Daily = () => {
 
           {hasPills ? (
             <AnimatedReveal index={4} animationKey={revealKey}>
-              <MissedDoseCard missed={weeklyMissed} />
+              <MissedDoseCard
+                missed={weeklyMissed}
+                onShare={handleShareWeekly}
+              />
             </AnimatedReveal>
           ) : null}
 

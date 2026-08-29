@@ -1,4 +1,3 @@
-import { Share, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getTodayDateKey } from './IntakeStorage';
 import { SYMPTOM_DIARY_KEY } from './storage/keys';
@@ -65,38 +64,7 @@ export const removeDiaryEntry = async entryId => {
   );
 };
 
-const formatEntryLine = entry => {
-  const time = entry.createdAt
-    ? new Date(entry.createdAt).toLocaleString('tr-TR', {
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })
-    : entry.date;
-  const tags = (entry.tags || []).join(', ');
-  const pill = entry.pillName ? ` • ${entry.pillName}` : '';
-  const note = entry.note ? `\n  ${entry.note}` : '';
-  const tagPart = tags ? `\n  Belirtiler: ${tags}` : '';
-
-  return `• ${time}${pill}${tagPart}${note}`;
-};
-
 export const shareDiaryForDoctor = async () => {
-  const entries = await getDiaryEntries();
-
-  const message = [
-    'İlaç Takibi — yan etki / not günlüğü',
-    `Tarih: ${new Date().toLocaleString('tr-TR')}`,
-    '',
-    entries.length
-      ? entries.map(formatEntryLine).join('\n\n')
-      : 'Kayıt yok.',
-  ].join('\n');
-
-  return Share.share(
-    Platform.OS === 'ios'
-      ? { title: 'Doktor notları', message }
-      : { title: 'Doktor notları', message, subject: 'İlaç Takibi notları' },
-  );
+  const { shareDiaryDoctorReport } = require('./ReportService');
+  return shareDiaryDoctorReport();
 };

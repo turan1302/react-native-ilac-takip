@@ -18,8 +18,8 @@ import {
   addDiaryEntry,
   getDiaryEntries,
   removeDiaryEntry,
-  shareDiaryForDoctor,
 } from '../../../common/DiaryStorage';
+import { shareDiaryDoctorReport } from '../../../common/ReportService';
 import AnimatedReveal from '../../../components/shared/AnimatedReveal';
 import styles, { COLORS } from './styles';
 
@@ -126,7 +126,16 @@ const SymptomDiary = () => {
             <Text style={styles.headerTitle}>Yan etki / not günlüğü</Text>
             <TouchableOpacity
               style={styles.shareButton}
-              onPress={() => shareDiaryForDoctor()}
+              onPress={async () => {
+                try {
+                  await shareDiaryDoctorReport();
+                } catch (error) {
+                  Alert.alert(
+                    'Paylaşılamadı',
+                    error?.message || 'Doktor günlüğü oluşturulamadı.',
+                  );
+                }
+              }}
               activeOpacity={0.7}
             >
               <Feather name="share-2" size={18} color={COLORS.primary} />
@@ -136,7 +145,7 @@ const SymptomDiary = () => {
 
         <AnimatedReveal index={1}>
           <Text style={styles.intro}>
-            Kısa kayıt bırakın: “Başım ağrıdı, ilacı aldım”. Doktor ziyaretinde paylaşabilirsiniz.
+            Kısa kayıt bırakın: “Başım ağrıdı, ilacı aldım”. Sağ üstten not ve yan etkileri tek dosyada doktora gönderin.
           </Text>
         </AnimatedReveal>
 
