@@ -1,4 +1,9 @@
 import { getPillTimes } from './pillFormConstants';
+import {
+  applyOffsetToTime,
+  getPillShiftOffsetMinutes,
+  isPillPausedOnDate,
+} from './scheduleAdjustments';
 
 const DAY_NAMES = ['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'];
 const MONTH_NAMES = [
@@ -174,6 +179,10 @@ const getPillStartDateKey = pill => {
 };
 
 export const shouldShowPillOnDate = (pill, selectedDateKey) => {
+  if (isPillPausedOnDate(pill, selectedDateKey)) {
+    return false;
+  }
+
   const frequency = pill.frequency || 'Her Gün';
   const startDateKey = getPillStartDateKey(pill);
   const { day } = parseDateKeyParts(selectedDateKey);
@@ -209,7 +218,13 @@ export const shouldShowPillOnDate = (pill, selectedDateKey) => {
   return true;
 };
 
-const mapPillToItem = (pill, takenIds, asNeeded = false, time = pill.time) => {
+const mapPillToItem = (
+  pill,
+  takenIds,
+  asNeeded = false,
+  time = pill.time,
+  displayTime = time,
+) => {
   const dosageText = [pill.dosage, pill.type].filter(Boolean).join(' • ');
   const doseKey = `${pill.id}__${time || 'asneeded'}`;
 
@@ -217,6 +232,7 @@ const mapPillToItem = (pill, takenIds, asNeeded = false, time = pill.time) => {
     id: doseKey,
     name: pill.name,
     time,
+    displayTime: displayTime || time,
     dosage: dosageText || pill.type || '-',
     icon: getTypeIcon(pill.type),
     isTaken: takenIds.has(doseKey) || takenIds.has(pill.id),
@@ -233,6 +249,7 @@ export const buildPillSections = (
   colors,
   takenIds = new Set(),
   selectedDateKey = formatDateKey(new Date()),
+  travelShifts = {},
 ) => {
   const grouped = {
     sabah: [],
@@ -251,13 +268,31 @@ export const buildPillSections = (
     .filter(pill => shouldShowPillOnDate(pill, selectedDateKey))
     .flatMap(pill => {
       const times = getPillTimes(pill);
-      return times.length ? times.map(time => ({ pill, time })) : [{ pill, time: pill.time }];
-    })
-    .sort((a, b) => (a.time || '').localeCompare(b.time || ''));
+      const offset = getPillShiftOffsetMinutes(
+        pill,
+        selectedDateKey,
+        travelShifts,
+      );
+      const slots = times.length
+        ? times.map(time => ({ pill, time }))
+        : [{ pill, time: pill.time }];
 
-  visibleScheduled.forEach(({ pill, time }) => {
-    const sectionId = getTimeSection(time);
-    grouped[sectionId].push(mapPillToItem(pill, takenIds, false, time));
+      return slots.map(slot => ({
+        ...slot,
+        displayTime: applyOffsetToTime(slot.time, offset),
+      }));
+    })
+    .sort((left, right) =>
+      (left.displayTime || left.time || '').localeCompare(
+        right.displayTime || right.time || '',
+      ),
+    );
+
+  visibleScheduled.forEach(({ pill, time, displayTime }) => {
+    const sectionId = getTimeSection(displayTime || time);
+    grouped[sectionId].push(
+      mapPillToItem(pill, takenIds, false, time, displayTime),
+    );
   });
 
   const sections = SECTION_CONFIG.map(section => ({
@@ -267,6 +302,7 @@ export const buildPillSections = (
   })).filter(section => section.items.length > 0);
 
   const asNeededItems = asNeededPills
+    .filter(pill => shouldShowPillOnDate(pill, selectedDateKey))
     .sort((a, b) => a.name.localeCompare(b.name, 'tr'))
     .map(pill => mapPillToItem(pill, takenIds, true));
 

@@ -3,6 +3,8 @@ import { getActiveProfileId } from './ProfileStorage';
 import { getTakenPillIdsForDate, getTodayDateKey } from './IntakeStorage';
 import { getDismissedPillIdsForDate } from './InAppNotificationStorage';
 import { buildPillSections } from './pillHelpers';
+import { getAllTravelShifts } from './TravelShiftStorage';
+import { getDoseDisplayTime } from './scheduleAdjustments';
 
 const COLORS = {
   sectionMorning: '#F59E0B',
@@ -35,15 +37,19 @@ export const getMissedNotifications = async (
   dateKey = getTodayDateKey(),
 ) => {
   const profileId = await getActiveProfileId();
-  const pills = await getPillsForProfile(profileId);
-  const takenIds = await getTakenPillIdsForDate(dateKey);
-  const dismissedIds = await getDismissedPillIdsForDate(dateKey);
+  const [pills, takenIds, dismissedIds, travelShifts] = await Promise.all([
+    getPillsForProfile(profileId),
+    getTakenPillIdsForDate(dateKey),
+    getDismissedPillIdsForDate(dateKey),
+    getAllTravelShifts(),
+  ]);
 
   const { sections, asNeededSection } = buildPillSections(
     pills,
     COLORS,
     takenIds,
     dateKey,
+    travelShifts,
   );
 
   const items = [
@@ -53,7 +59,7 @@ export const getMissedNotifications = async (
 
   return items
     .filter(item => !item.isTaken && !item.asNeeded)
-    .filter(item => isPastScheduledTime(item.time, dateKey))
+    .filter(item => isPastScheduledTime(getDoseDisplayTime(item), dateKey))
     .map(item => ({
       id: `${item.pill.id}_${dateKey}`,
       pillId: item.pill.id,

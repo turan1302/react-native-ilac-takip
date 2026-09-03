@@ -32,6 +32,7 @@ import {
   parseDateKeyParts,
   shiftDateKeyByDays,
 } from '../../common/pillHelpers';
+import { getAllTravelShifts } from '../../common/TravelShiftStorage';
 import useRevealOnFocus from '../../hooks/useRevealOnFocus';
 import AnimatedReveal from '../../components/shared/AnimatedReveal';
 import AddPillFab from '../../components/Program/AddPillFab';
@@ -61,9 +62,12 @@ const Program = () => {
   const revealKey = useRevealOnFocus();
 
   const loadPills = useCallback(async () => {
-    const pills = await getPillsForProfile(activeProfileId);
-    const takenIds = await getTakenDoseKeysForDate(selectedDate);
-    const enabled = await getRemindersEnabled();
+    const [pills, takenIds, enabled, travelShifts] = await Promise.all([
+      getPillsForProfile(activeProfileId),
+      getTakenDoseKeysForDate(selectedDate),
+      getRemindersEnabled(),
+      getAllTravelShifts(),
+    ]);
 
     setWeekDays(getWeekDaysForDate(selectedDate));
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
@@ -71,6 +75,7 @@ const Program = () => {
       COLORS,
       takenIds,
       selectedDate,
+      travelShifts,
     );
     setSections(pillSections);
     setAsNeededSection(asNeeded);
@@ -252,6 +257,7 @@ const Program = () => {
                 onPressEdit={handleEditPill}
                 animationKey={`${revealKey}-${selectedDate}`}
                 startIndex={5 + sectionIndex * 4}
+                selectedDate={selectedDate}
               />
             ))}
             {asNeededSection && (
@@ -263,6 +269,7 @@ const Program = () => {
                 onPressEdit={handleEditPill}
                 animationKey={`${revealKey}-${selectedDate}`}
                 startIndex={5 + sections.length * 4}
+                selectedDate={selectedDate}
               />
             )}
           </>

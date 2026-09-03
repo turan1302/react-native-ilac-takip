@@ -134,6 +134,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: COLORS.primary,
   },
+  missedAdvice: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#B45309',
+  },
 });
 
 export default styles;

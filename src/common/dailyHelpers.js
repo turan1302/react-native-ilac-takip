@@ -5,6 +5,7 @@ import {
   shiftDateKeyByDays,
 } from './pillHelpers';
 import { getMealRelationLabel } from './pillFormConstants';
+import { getDoseDisplayTime } from './scheduleAdjustments';
 
 export const MONTH_NAMES = [
   'Ocak',
@@ -50,7 +51,8 @@ export const getDetailText = item => {
 
   const meal = getMealRelationLabel(item.pill?.mealRelation);
   const label = item.pill.notes?.trim() || item.dosage;
-  const parts = [label, item.time, meal].filter(Boolean);
+  const shownTime = getDoseDisplayTime(item);
+  const parts = [label, shownTime, meal].filter(Boolean);
   return parts.join(' • ');
 };
 
@@ -100,20 +102,27 @@ export const getPillStatus = (item, dateKey, intakeMap) => {
     return { status: 'pending' };
   }
 
-  if (isPastScheduledTime(item.time, dateKey)) {
+  if (isPastScheduledTime(getDoseDisplayTime(item), dateKey)) {
     return { status: 'skipped' };
   }
 
   return { status: 'pending' };
 };
 
-export const calculateWeeklyStats = async (pills, endDateKey, colors) => {
+export const calculatePeriodStats = async (
+  pills,
+  endDateKey,
+  colors,
+  dayCount = 7,
+  travelShifts = {},
+) => {
   let total = 0;
   let taken = 0;
   let missed = 0;
   const today = getTodayDateKey();
+  const days = [];
 
-  for (let offset = 6; offset >= 0; offset -= 1) {
+  for (let offset = dayCount - 1; offset >= 0; offset -= 1) {
     const dateKey = shiftDateKeyByDays(endDateKey, -offset);
     const intakeMap = await getIntakeMapForDate(dateKey);
     const takenIds = new Set(
@@ -126,35 +135,55 @@ export const calculateWeeklyStats = async (pills, endDateKey, colors) => {
       colors,
       takenIds,
       dateKey,
+      travelShifts,
     );
     const items = [
       ...sections.flatMap(section => section.items),
       ...(asNeededSection?.items || []),
     ];
 
+    let dayTotal = 0;
+    let dayTaken = 0;
+    let dayMissed = 0;
+
     items.forEach(item => {
       if (item.asNeeded) {
         if (item.isTaken) {
           total += 1;
           taken += 1;
+          dayTotal += 1;
+          dayTaken += 1;
         }
         return;
       }
 
       total += 1;
+      dayTotal += 1;
 
       if (item.isTaken) {
         taken += 1;
+        dayTaken += 1;
         return;
       }
 
       const isDue =
         dateKey < today ||
-        (dateKey === today && isPastScheduledTime(item.time, dateKey));
+        (dateKey === today &&
+          isPastScheduledTime(getDoseDisplayTime(item), dateKey));
 
       if (isDue) {
         missed += 1;
+        dayMissed += 1;
       }
+    });
+
+    days.push({
+      dateKey,
+      total: dayTotal,
+      taken: dayTaken,
+      missed: dayMissed,
+      compliance:
+        dayTotal > 0 ? Math.round((dayTaken / dayTotal) * 100) : null,
     });
   }
 
@@ -163,8 +192,23 @@ export const calculateWeeklyStats = async (pills, endDateKey, colors) => {
     taken,
     missed,
     compliance: total > 0 ? Math.round((taken / total) * 100) : 0,
+    days,
   };
 };
+
+export const calculateWeeklyStats = async (
+  pills,
+  endDateKey,
+  colors,
+  travelShifts = {},
+) => calculatePeriodStats(pills, endDateKey, colors, 7, travelShifts);
+
+export const calculateMonthlyStats = async (
+  pills,
+  endDateKey,
+  colors,
+  travelShifts = {},
+) => calculatePeriodStats(pills, endDateKey, colors, 30, travelShifts);
 
 const matchesSearchQuery = (item, query) => {
   const normalized = query.trim().toLowerCase();

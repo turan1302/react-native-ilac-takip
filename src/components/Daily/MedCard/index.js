@@ -3,12 +3,15 @@ import { View, Text, TouchableOpacity, Alert } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import { formatTakenAt, getDetailText } from '../../../common/dailyHelpers';
 import { getStockEtaLabel } from '../../../common/stockHelpers';
+import { getMissedAdviceText } from '../../../common/scheduleAdjustments';
 import DoseActions from '../../shared/DoseActions';
 import styles, { COLORS } from './styles';
 
 const MedCard = ({ item, statusInfo, onTake, onSkip, onSnooze, onPressEdit }) => {
   const status = statusInfo.status;
   const stockLabel = getStockEtaLabel(item.pill);
+  const missedAdvice =
+    status === 'skipped' ? getMissedAdviceText(item.pill) : '';
 
   return (
     <View style={[styles.medCard, status === 'pending' && styles.medCardPending]}>
@@ -35,6 +38,9 @@ const MedCard = ({ item, statusInfo, onTake, onSkip, onSnooze, onPressEdit }) =>
           <Text style={styles.medDetail}>{getDetailText(item)}</Text>
           {stockLabel ? (
             <Text style={styles.stockWarning}>{stockLabel}</Text>
+          ) : null}
+          {missedAdvice ? (
+            <Text style={styles.missedAdvice}>{missedAdvice}</Text>
           ) : null}
           {item.pill.prospectus ? (
             <TouchableOpacity onPress={() => Alert.alert('Prospektüs', item.pill.prospectus)}>

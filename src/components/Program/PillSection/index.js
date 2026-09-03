@@ -13,6 +13,7 @@ const PillSection = ({
   onPressEdit,
   animationKey,
   startIndex = 0,
+  selectedDate,
 }) => (
   <View>
     <AnimatedReveal index={startIndex} animationKey={animationKey} distance={12}>
@@ -36,6 +37,7 @@ const PillSection = ({
           onSkip={onSkip}
           onSnooze={onSnooze}
           onPressEdit={onPressEdit}
+          dateKey={selectedDate}
         />
       </AnimatedReveal>
     ))}

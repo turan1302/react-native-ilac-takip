@@ -14,6 +14,7 @@ import {
   REMINDERS_ENABLED_KEY,
   SCHEMA_VERSION_KEY,
   SYMPTOM_DIARY_KEY,
+  TRAVEL_SHIFT_KEY,
 } from './storage/keys';
 import { parseJson } from './storage/json';
 import { CURRENT_SCHEMA_VERSION } from './storage/migrations';
@@ -33,6 +34,7 @@ const RESTORE_KEYS = [
   QUIET_HOURS_START_KEY,
   QUIET_HOURS_END_KEY,
   SYMPTOM_DIARY_KEY,
+  TRAVEL_SHIFT_KEY,
   SCHEMA_VERSION_KEY,
 ];
 

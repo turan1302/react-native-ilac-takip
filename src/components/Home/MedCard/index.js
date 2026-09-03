@@ -4,14 +4,35 @@ import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityI
 import DoseActions from '../../shared/DoseActions';
 import { getMealRelationLabel } from '../../../common/pillFormConstants';
 import { getStockEtaLabel } from '../../../common/stockHelpers';
+import {
+  getDoseDisplayTime,
+  getMissedAdviceText,
+} from '../../../common/scheduleAdjustments';
+import { isPastScheduledTime } from '../../../common/inAppNotificationHelpers';
+import { getTodayDateKey } from '../../../common/IntakeStorage';
 import styles, { COLORS } from './styles';
 
-const MedCard = ({ item, status = 'pending', takenAt, onTake, onSkip, onSnooze, onPressEdit }) => {
+const MedCard = ({
+  item,
+  status = 'pending',
+  takenAt,
+  onTake,
+  onSkip,
+  onSnooze,
+  onPressEdit,
+  dateKey,
+}) => {
   const meal = getMealRelationLabel(item.pill?.mealRelation);
+  const shownTime = getDoseDisplayTime(item);
   const detail = item.asNeeded
     ? [item.dosage, meal].filter(Boolean).join(' • ')
-    : [item.time, item.dosage, meal].filter(Boolean).join(' • ');
+    : [shownTime, item.dosage, meal].filter(Boolean).join(' • ');
   const stockLabel = getStockEtaLabel(item.pill);
+  const overdue =
+    !item.asNeeded &&
+    !item.isTaken &&
+    isPastScheduledTime(shownTime, dateKey || getTodayDateKey());
+  const missedAdvice = overdue ? getMissedAdviceText(item.pill) : '';
 
   return (
     <View style={[styles.medCard, item.isTaken && styles.medCardTaken]}>
@@ -42,6 +63,9 @@ const MedCard = ({ item, status = 'pending', takenAt, onTake, onSkip, onSnooze, 
           </Text>
           {stockLabel ? (
             <Text style={styles.stockWarning}>{stockLabel}</Text>
+          ) : null}
+          {missedAdvice ? (
+            <Text style={styles.missedAdvice}>{missedAdvice}</Text>
           ) : null}
           {item.pill.prospectus ? (
             <TouchableOpacity

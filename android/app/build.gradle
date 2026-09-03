@@ -82,8 +82,8 @@ android {
         applicationId "com.mfbag.ilactakibi"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 11
-        versionName "1.0.4"
+        versionCode 12
+        versionName "1.0.5"
     }
     signingConfigs {
         debug {
@@ -109,8 +109,10 @@ android {
             // Caution! In production, you need to generate your own keystore file.
             // see https://reactnative.dev/docs/signed-apk-android.
            // signingConfig signingConfigs.debug
+            minifyEnabled true
+            shrinkResources true
             signingConfig signingConfigs.release
-            minifyEnabled enableProguardInReleaseBuilds
+             //minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
     }

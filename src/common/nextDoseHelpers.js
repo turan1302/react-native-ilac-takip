@@ -6,6 +6,8 @@ import {
 } from './IntakeStorage';
 import { buildPillSections } from './pillHelpers';
 import { getDaysUntilStockRunsOut } from './stockHelpers';
+import { getAllTravelShifts } from './TravelShiftStorage';
+import { getDoseDisplayTime } from './scheduleAdjustments';
 
 export const NEXT_DOSE_SECTION_COLORS = {
   sectionMorning: '#F59E0B',
@@ -56,8 +58,8 @@ const groupByTime = items => {
     return [];
   }
 
-  const firstTime = items[0].time || '';
-  return items.filter(item => (item.time || '') === firstTime);
+  const firstTime = getDoseDisplayTime(items[0]);
+  return items.filter(item => getDoseDisplayTime(item) === firstTime);
 };
 
 export const getNudgeState = (items = [], now = new Date(), intakeMap = null) => {
@@ -65,15 +67,16 @@ export const getNudgeState = (items = [], now = new Date(), intakeMap = null) =>
     .filter(item => isPendingItem(item, intakeMap))
     .sort(
       (left, right) =>
-        parseTimeToMinutes(left.time) - parseTimeToMinutes(right.time),
+        parseTimeToMinutes(getDoseDisplayTime(left)) -
+        parseTimeToMinutes(getDoseDisplayTime(right)),
     );
 
   const nowMinutes = now.getHours() * 60 + now.getMinutes();
   const overdue = pending.filter(
-    item => parseTimeToMinutes(item.time) <= nowMinutes,
+    item => parseTimeToMinutes(getDoseDisplayTime(item)) <= nowMinutes,
   );
   const upcoming = pending.filter(
-    item => parseTimeToMinutes(item.time) > nowMinutes,
+    item => parseTimeToMinutes(getDoseDisplayTime(item)) > nowMinutes,
   );
 
   if (overdue.length) {
@@ -85,8 +88,8 @@ export const getNudgeState = (items = [], now = new Date(), intakeMap = null) =>
       kicker: 'Hadi, ilacını al',
       headline:
         group.length === 1 ? `Hadi, ${group[0].name} al` : 'Hadi, ilaçlarını al',
-      subtitle: `${names} • ${group[0].time}`,
-      time: group[0].time || '',
+      subtitle: `${names} • ${getDoseDisplayTime(group[0])}`,
+      time: getDoseDisplayTime(group[0]) || '',
       items: group,
     };
   }
@@ -102,8 +105,8 @@ export const getNudgeState = (items = [], now = new Date(), intakeMap = null) =>
         group.length === 1
           ? `Sıradaki: ${group[0].name}`
           : `Sıradaki: ${group.length} ilaç`,
-      subtitle: `${names} • ${group[0].time}`,
-      time: group[0].time || '',
+      subtitle: `${names} • ${getDoseDisplayTime(group[0])}`,
+      time: getDoseDisplayTime(group[0]) || '',
       items: group,
     };
   }
@@ -131,16 +134,18 @@ export const getNudgeState = (items = [], now = new Date(), intakeMap = null) =>
 
 export const getTodayNudgeSnapshot = async (now = new Date()) => {
   const today = getTodayDateKey(now);
-  const [pills, takenIds, intakeMap] = await Promise.all([
+  const [pills, takenIds, intakeMap, travelShifts] = await Promise.all([
     getPills(),
     getTakenDoseKeysForDate(today),
     getIntakeMapForDate(today),
+    getAllTravelShifts(),
   ]);
   const { sections } = buildPillSections(
     pills,
     NEXT_DOSE_SECTION_COLORS,
     takenIds,
     today,
+    travelShifts,
   );
   const items = getScheduledDoseItems(sections);
 

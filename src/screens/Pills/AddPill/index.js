@@ -51,6 +51,8 @@ import ScheduleExtras, {
   StockFields,
 } from '../../../components/Pills/AddPill/ScheduleExtras';
 import { MealRelationField } from '../../../components/Pills/AddPill/MealRelationField';
+import PauseField from '../../../components/Pills/AddPill/PauseField';
+import MissedAdviceField from '../../../components/Pills/AddPill/MissedAdviceField';
 import styles, { COLORS } from './styles';
 
 const AddPill = () => {
@@ -82,6 +84,10 @@ const AddPill = () => {
   const [tempHour, setTempHour] = useState('09');
   const [tempMinute, setTempMinute] = useState('00');
   const [saving, setSaving] = useState(false);
+  const [missedAdvice, setMissedAdvice] = useState('');
+  const [missedAdviceNote, setMissedAdviceNote] = useState('');
+  const [pauseStart, setPauseStart] = useState('');
+  const [pauseUntil, setPauseUntil] = useState('');
 
   const isAsNeeded = isAsNeededFrequency(frequency);
   const intervalHours = INTERVAL_HOURS[frequency];
@@ -192,6 +198,10 @@ const AddPill = () => {
         startDate,
         endDate: needsDateRange(frequency) ? endDate : endDate || '',
         profileId: activeProfileId,
+        missedAdvice,
+        missedAdviceNote: missedAdviceNote.trim(),
+        pauseStart,
+        pauseUntil,
       });
 
       const permissionResult = await ensureNotificationPermissions();
@@ -326,6 +336,27 @@ const AddPill = () => {
           </AnimatedReveal>
 
           <AnimatedReveal index={10}>
+            <MissedAdviceField
+              value={missedAdvice}
+              note={missedAdviceNote}
+              onChange={setMissedAdvice}
+              onChangeNote={setMissedAdviceNote}
+              onFocus={handleNotesFocus}
+            />
+          </AnimatedReveal>
+
+          <AnimatedReveal index={11}>
+            <PauseField
+              pauseStart={pauseStart}
+              pauseUntil={pauseUntil}
+              onChange={({ pauseStart: nextStart, pauseUntil: nextUntil }) => {
+                setPauseStart(nextStart);
+                setPauseUntil(nextUntil);
+              }}
+            />
+          </AnimatedReveal>
+
+          <AnimatedReveal index={12}>
             <NotesField
               value={notes}
               onChangeText={setNotes}
@@ -333,7 +364,7 @@ const AddPill = () => {
             />
           </AnimatedReveal>
 
-          <AnimatedReveal index={11}>
+          <AnimatedReveal index={13}>
             <FormActions
               saving={saving}
               onSave={handleSave}

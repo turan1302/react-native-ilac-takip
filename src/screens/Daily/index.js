@@ -26,9 +26,11 @@ import {
   parseDateKeyParts,
 } from '../../common/pillHelpers';
 import {
+  calculateMonthlyStats,
   calculateWeeklyStats,
   filterSectionsByQuery,
 } from '../../common/dailyHelpers';
+import { getAllTravelShifts } from '../../common/TravelShiftStorage';
 import useDebounce from '../../hooks/useDebounce';
 import useRevealOnFocus from '../../hooks/useRevealOnFocus';
 import AnimatedReveal from '../../components/shared/AnimatedReveal';
@@ -43,6 +45,7 @@ import SearchBar from '../../components/Daily/SearchBar';
 import SearchEmptyState from '../../components/Daily/SearchEmptyState';
 import StatsRow from '../../components/Daily/StatsRow';
 import MissedDoseCard from '../../components/Daily/MissedDoseCard';
+import MonthlyChart from '../../components/Daily/MonthlyChart';
 import { shareWeeklyAdherence } from '../../common/ReportService';
 import styles, { COLORS } from './styles';
 
@@ -56,6 +59,10 @@ const Daily = () => {
   const [selectedDate, setSelectedDate] = useState(getTodayDateKey());
   const [weeklyCompliance, setWeeklyCompliance] = useState(0);
   const [weeklyMissed, setWeeklyMissed] = useState(0);
+  const [monthlyStats, setMonthlyStats] = useState({
+    days: [],
+    compliance: 0,
+  });
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [tempDay, setTempDay] = useState(1);
   const [tempMonth, setTempMonth] = useState(1);
@@ -68,19 +75,30 @@ const Daily = () => {
   );
 
   const loadData = useCallback(async () => {
-    const pills = await getPillsForProfile(activeProfileId);
-    const map = await getIntakeMapForDate(selectedDate);
-    const takenIds = await getTakenDoseKeysForDate(selectedDate);
+    const [pills, map, takenIds, travelShifts] = await Promise.all([
+      getPillsForProfile(activeProfileId),
+      getIntakeMapForDate(selectedDate),
+      getTakenDoseKeysForDate(selectedDate),
+      getAllTravelShifts(),
+    ]);
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
       pills,
       COLORS,
       takenIds,
       selectedDate,
+      travelShifts,
     );
     const weeklyStats = await calculateWeeklyStats(
       pills,
       selectedDate,
       COLORS,
+      travelShifts,
+    );
+    const nextMonthly = await calculateMonthlyStats(
+      pills,
+      selectedDate,
+      COLORS,
+      travelShifts,
     );
 
     setWeekDays(getWeekDaysForDate(selectedDate));
@@ -89,6 +107,7 @@ const Daily = () => {
     setIntakeMap(map);
     setWeeklyCompliance(weeklyStats.compliance);
     setWeeklyMissed(weeklyStats.missed);
+    setMonthlyStats(nextMonthly);
   }, [selectedDate, activeProfileId]);
 
   useFocusEffect(
@@ -247,6 +266,17 @@ const Daily = () => {
               <MissedDoseCard
                 missed={weeklyMissed}
                 onShare={handleShareWeekly}
+              />
+            </AnimatedReveal>
+          ) : null}
+
+          {hasPills ? (
+            <AnimatedReveal index={4} animationKey={revealKey}>
+              <MonthlyChart
+                days={monthlyStats.days}
+                compliance={monthlyStats.compliance}
+                selectedDate={selectedDate}
+                onSelectDay={handleSelectDay}
               />
             </AnimatedReveal>
           ) : null}

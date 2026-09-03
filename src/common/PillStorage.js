@@ -24,6 +24,10 @@ export const normalizePill = pill => {
     daysOfMonth: Array.isArray(source.daysOfMonth) ? source.daysOfMonth : [],
     endDate: source.endDate || '',
     mealRelation: source.mealRelation || 'none',
+    pauseStart: source.pauseStart || '',
+    pauseUntil: source.pauseUntil || '',
+    missedAdvice: source.missedAdvice || '',
+    missedAdviceNote: source.missedAdviceNote || '',
   };
 };
 

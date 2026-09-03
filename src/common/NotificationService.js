@@ -30,6 +30,11 @@ import {
   isAsNeededFrequency,
 } from './pillFormConstants';
 import {
+  applyOffsetToTime,
+  getPillShiftOffsetMinutes,
+} from './scheduleAdjustments';
+import { getAllTravelShifts } from './TravelShiftStorage';
+import {
   getQuietHoursEndDate,
   getQuietHoursSettings,
   isTimeInQuietHours,
@@ -56,7 +61,7 @@ const shouldSchedulePill = pill => {
 const toNotificationId = (prefix, pillId, time = '', extra = '') =>
   [prefix, pillId, (time || '').replace(':', ''), extra].filter(Boolean).join('_');
 
-const getUpcomingDatesForSlot = (pill, time, now, daysAhead) => {
+const getUpcomingDatesForSlot = (pill, time, now, daysAhead, shiftsByProfile) => {
   const [hour, minute] = (time || '09:00').split(':').map(Number);
   const dates = [];
 
@@ -70,12 +75,20 @@ const getUpcomingDatesForSlot = (pill, time, now, daysAhead) => {
 
     const trigger = new Date(day);
     trigger.setHours(hour, minute, 0, 0);
+    const shiftMinutes = getPillShiftOffsetMinutes(
+      pill,
+      dateKey,
+      shiftsByProfile,
+    );
+    if (shiftMinutes) {
+      trigger.setMinutes(trigger.getMinutes() + shiftMinutes);
+    }
 
     if (trigger.getTime() <= now.getTime()) {
       continue;
     }
 
-    dates.push(trigger);
+    dates.push({ trigger, dateKey });
   }
 
   return dates;
@@ -145,10 +158,10 @@ const toItemsPayload = items =>
     })),
   );
 
-const buildNotification = (pill, time, id) => ({
+const buildNotification = (pill, time, id, displayTime = time) => ({
   id,
   title: 'İlaç saati',
-  body: `${getNotificationBody(pill, time)} Hadi al.`,
+  body: `${getNotificationBody(pill, displayTime || time)} Hadi al.`,
   data: {
     pillId: String(pill.id),
     time: time || '',
@@ -163,12 +176,13 @@ const buildNotification = (pill, time, id) => ({
 
 const buildGroupedNotification = (items, id) => {
   const time = items[0]?.time || '';
+  const displayTime = items[0]?.displayTime || time;
   const names = joinNames(items.map(item => item.pill.name));
 
   return {
     id,
     title: 'İlaç saati',
-    body: `${names} alma zamanı (${time}). Hadi al.`,
+    body: `${names} alma zamanı (${displayTime}). Hadi al.`,
     data: {
       grouped: '1',
       time,
@@ -188,6 +202,7 @@ const buildGroupedNotification = (items, id) => {
 
 const buildFollowUpNotification = (items, id) => {
   const time = items[0]?.time || '';
+  const displayTime = items[0]?.displayTime || time;
   const names = joinNames(items.map(item => item.pill.name));
   const waitLabel = `${FOLLOW_UP_MINUTES} dk`;
 
@@ -196,8 +211,8 @@ const buildFollowUpNotification = (items, id) => {
     title: 'Hâlâ almadın',
     body:
       items.length === 1
-        ? `${items[0].pill.name} henüz alınmadı (${time}). ${waitLabel} geçti, hadi al.`
-        : `${names} henüz alınmadı (${time}). ${waitLabel} geçti, hadi al.`,
+        ? `${items[0].pill.name} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al.`
+        : `${names} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al.`,
     data: {
       followUp: '1',
       grouped: items.length > 1 ? '1' : '0',
@@ -233,7 +248,7 @@ const isDoseResolved = (intakeMap, pill, time) => {
   );
 };
 
-const scheduleFollowUpNudges = async (pills, now, quiet) => {
+const scheduleFollowUpNudges = async (pills, now, quiet, shiftsByProfile) => {
   const today = formatDateKey(now);
   const intakeMap = await getIntakeMapForDate(today);
   const buckets = new Map();
@@ -258,6 +273,14 @@ const scheduleFollowUpNudges = async (pills, now, quiet) => {
         0,
         0,
       );
+      const shiftMinutes = getPillShiftOffsetMinutes(
+        pill,
+        today,
+        shiftsByProfile,
+      );
+      if (shiftMinutes) {
+        doseAt.setMinutes(doseAt.getMinutes() + shiftMinutes);
+      }
 
       if (doseAt.getTime() > now.getTime()) {
         continue;
@@ -281,7 +304,11 @@ const scheduleFollowUpNudges = async (pills, now, quiet) => {
 
       const timestamp = followAt.getTime();
       const bucket = buckets.get(timestamp) || [];
-      bucket.push({ pill, time: slot.time });
+      bucket.push({
+        pill,
+        time: slot.time,
+        displayTime: applyOffsetToTime(slot.time, shiftMinutes),
+      });
       buckets.set(timestamp, bucket);
     }
   }
@@ -822,9 +849,10 @@ export const rescheduleAllReminders = async () => {
     return { scheduled: 0, failed: 0, permissionDenied: true };
   }
 
-  const [pills, quiet] = await Promise.all([
+  const [pills, quiet, shiftsByProfile] = await Promise.all([
     getPills(),
     getQuietHoursSettings(),
+    getAllTravelShifts(),
   ]);
   const now = new Date();
   const digestMap = new Map();
@@ -845,21 +873,27 @@ export const rescheduleAllReminders = async () => {
         slot.time,
         now,
         SCHEDULE_DAYS_AHEAD,
+        shiftsByProfile,
       );
 
-      for (const date of dates) {
-        if (isTimeInQuietHours(date, quiet)) {
-          const digestAt = getQuietHoursEndDate(date, quiet).getTime();
+      for (const { trigger, dateKey } of dates) {
+        const displayTime = applyOffsetToTime(
+          slot.time,
+          getPillShiftOffsetMinutes(pill, dateKey, shiftsByProfile),
+        );
+
+        if (isTimeInQuietHours(trigger, quiet)) {
+          const digestAt = getQuietHoursEndDate(trigger, quiet).getTime();
           const bucket = digestMap.get(digestAt) || [];
-          bucket.push({ pill, time: slot.time });
+          bucket.push({ pill, time: slot.time, displayTime });
           digestMap.set(digestAt, bucket);
           pillScheduled = true;
           continue;
         }
 
-        const timestamp = date.getTime();
+        const timestamp = trigger.getTime();
         const bucket = timeBuckets.get(timestamp) || [];
-        bucket.push({ pill, time: slot.time });
+        bucket.push({ pill, time: slot.time, displayTime });
         timeBuckets.set(timestamp, bucket);
         pillScheduled = true;
       }
@@ -882,7 +916,12 @@ export const rescheduleAllReminders = async () => {
         : `dose_group_${timeStamp}_${dateStamp}`;
     const notification =
       uniqueItems.length === 1
-        ? buildNotification(uniqueItems[0].pill, uniqueItems[0].time, id)
+        ? buildNotification(
+            uniqueItems[0].pill,
+            uniqueItems[0].time,
+            id,
+            uniqueItems[0].displayTime,
+          )
         : buildGroupedNotification(uniqueItems, id);
 
     try {
@@ -919,7 +958,7 @@ export const rescheduleAllReminders = async () => {
   }
 
   try {
-    await scheduleFollowUpNudges(pills, now, quiet);
+    await scheduleFollowUpNudges(pills, now, quiet, shiftsByProfile);
   } catch (error) {
     console.warn('schedule follow-up nudges failed:', error);
   }

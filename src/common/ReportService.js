@@ -7,7 +7,9 @@ import {
   buildPillSections,
   shiftDateKeyByDays,
 } from './pillHelpers';
-import { getPillStatus } from './dailyHelpers';
+import { getPillStatus, calculateMonthlyStats } from './dailyHelpers';
+import { getAllTravelShifts } from './TravelShiftStorage';
+import { getDoseDisplayTime } from './scheduleAdjustments';
 
 const REPORT_COLORS = {};
 
@@ -61,7 +63,7 @@ const statusLabel = (item, dateKey, intakeMap) => {
   return 'Bekliyor';
 };
 
-const collectDayItems = async (pills, dateKey) => {
+const collectDayItems = async (pills, dateKey, travelShifts = {}) => {
   const intakeMap = await getIntakeMapForDate(dateKey);
   const takenIds = new Set(
     [...intakeMap.entries()]
@@ -73,6 +75,7 @@ const collectDayItems = async (pills, dateKey) => {
     REPORT_COLORS,
     takenIds,
     dateKey,
+    travelShifts,
   );
   const items = [
     ...sections.flatMap(section => section.items),
@@ -81,7 +84,7 @@ const collectDayItems = async (pills, dateKey) => {
 
   return items.map(item => ({
     name: item.name,
-    time: item.time || '',
+    time: getDoseDisplayTime(item) || item.time || '',
     dosage: item.dosage || '',
     asNeeded: Boolean(item.asNeeded),
     status: statusLabel(item, dateKey, intakeMap),
@@ -115,13 +118,20 @@ export const shareReportFile = async (contents, filename, title) => {
 
 export const buildWeeklyAdherenceText = async (endDateKey = getTodayDateKey()) => {
   const profileId = await getActiveProfileId();
-  const [pills, profiles] = await Promise.all([
+  const [pills, profiles, travelShifts] = await Promise.all([
     getPillsForProfile(profileId),
     getProfiles(),
+    getAllTravelShifts(),
   ]);
   const profileName =
     profiles.find(profile => profile.id === profileId)?.name || 'Ben';
   const startDateKey = shiftDateKeyByDays(endDateKey, -6);
+  const monthly = await calculateMonthlyStats(
+    pills,
+    endDateKey,
+    REPORT_COLORS,
+    travelShifts,
+  );
   const days = [];
   let taken = 0;
   let missed = 0;
@@ -131,7 +141,7 @@ export const buildWeeklyAdherenceText = async (endDateKey = getTodayDateKey()) =
 
   for (let offset = 6; offset >= 0; offset -= 1) {
     const dateKey = shiftDateKeyByDays(endDateKey, -offset);
-    const items = await collectDayItems(pills, dateKey);
+    const items = await collectDayItems(pills, dateKey, travelShifts);
     days.push({ dateKey, items });
 
     items.forEach(item => {
@@ -189,6 +199,8 @@ export const buildWeeklyAdherenceText = async (endDateKey = getTodayDateKey()) =
     pending ? `Bekliyor / ertelendi: ${pending}` : null,
     `Toplam planlı doz: ${total}`,
     `Uyum: %${compliance}`,
+    '',
+    `Son 30 gün: alındı ${monthly.taken} / kaçırıldı ${monthly.missed} / uyum %${monthly.compliance}`,
     '',
     'Günlük döküm',
     '────────────',

@@ -12,6 +12,7 @@ import { markDosesTaken } from '../../common/DoseLinking';
 import { notifyLowStockIfNeeded, rescheduleAllReminders } from '../../common/NotificationService';
 import { getNudgeState, getScheduledDoseItems } from '../../common/nextDoseHelpers';
 import { buildPillSections } from '../../common/pillHelpers';
+import { getAllTravelShifts } from '../../common/TravelShiftStorage';
 import { useProfile } from '../../common/ProfileContext';
 import useDoseActions from '../../hooks/useDoseActions';
 import useRevealOnFocus from '../../hooks/useRevealOnFocus';
@@ -36,16 +37,18 @@ const Home = () => {
   const [intakeMap, setIntakeMap] = useState(null);
 
   const loadPills = useCallback(async () => {
-    const [pills, takenIds, nextIntakeMap] = await Promise.all([
+    const [pills, takenIds, nextIntakeMap, travelShifts] = await Promise.all([
       getPillsForProfile(activeProfileId),
       getTakenDoseKeysForDate(today),
       getIntakeMapForDate(today),
+      getAllTravelShifts(),
     ]);
     const { sections: pillSections, asNeededSection: asNeeded } = buildPillSections(
       pills,
       COLORS,
       takenIds,
       today,
+      travelShifts,
     );
 
     setSections(pillSections);

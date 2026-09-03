@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
+import { getMissedAdviceText } from '../../../common/scheduleAdjustments';
 import styles from './styles';
 
 const NudgeCard = ({ snapshot, onTake }) => {
@@ -9,6 +10,9 @@ const NudgeCard = ({ snapshot, onTake }) => {
   }
 
   const overdue = snapshot.kind === 'overdue';
+  const missedAdvice = overdue
+    ? getMissedAdviceText(snapshot.items?.[0]?.pill)
+    : '';
 
   return (
     <View style={[styles.card, overdue ? styles.cardOverdue : styles.cardUpcoming]}>
@@ -25,6 +29,9 @@ const NudgeCard = ({ snapshot, onTake }) => {
         </Text>
         <Text style={styles.title}>{snapshot.headline}</Text>
         <Text style={styles.subtitle}>{snapshot.subtitle}</Text>
+        {missedAdvice ? (
+          <Text style={styles.subtitle}>{missedAdvice}</Text>
+        ) : null}
       </View>
       <TouchableOpacity style={styles.takeButton} onPress={onTake} activeOpacity={0.85}>
         <Text style={styles.takeButtonText}>Aldım</Text>
