@@ -74,7 +74,11 @@
 		<string>Feather.ttf</string>
 		<string>MaterialCommunityIcons.ttf</string>
 	</array>
-	<key>UILaunchStoryboardName</key>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>İlaç kutusu veya reçete fotoğrafı eklemek için galeri erişimi gerekir.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>İlaç fotoğraflarını kaydetmek için galeri erişimi gerekir.</string>
+	<key>LSLaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>
 	<array>

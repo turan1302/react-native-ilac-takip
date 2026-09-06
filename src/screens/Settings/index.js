@@ -13,18 +13,23 @@ import SettingsRow from '../../components/Settings/SettingsRow';
 import FamilySection from '../../components/Settings/FamilySection';
 import QuietHoursSection from '../../components/Settings/QuietHoursSection';
 import TravelShiftSection from '../../components/Settings/TravelShiftSection';
+import ThemeSection from '../../components/Settings/ThemeSection';
 import BackupSection from '../../components/Settings/BackupSection';
 import {
   shareDiaryDoctorReport,
   shareWeeklyAdherence,
 } from '../../common/ReportService';
+import { shareCaregiverSummary } from '../../common/CaregiverService';
+import { seedDemoData } from '../../common/seedDemoData';
 import { getTodayDateKey } from '../../common/IntakeStorage';
-import styles, { COLORS } from './styles';
+import { useTheme } from '../../common/ThemeContext';
+import styles from './styles';
 
 const Settings = () => {
   const navigation = useNavigation();
   const { remindersEnabled, loadRemindersState, toggleReminders } = useReminders();
   const revealKey = useRevealOnFocus();
+  const { colors } = useTheme();
 
   useFocusEffect(
     useCallback(() => {
@@ -45,10 +50,17 @@ const Settings = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <StatusBar
+        barStyle={colors.statusBar}
+        backgroundColor={colors.background}
+      />
 
       <ScrollView
+        style={{ backgroundColor: colors.background }}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
       >
@@ -59,11 +71,18 @@ const Settings = () => {
         <AnimatedReveal index={1} animationKey={revealKey}>
           <SectionTitle title="UYGULAMA" />
           <AppVersionCard />
+          <ThemeSection />
           <SettingsRow
             icon="edit-3"
             title="Yan etki / not günlüğü"
             subtitle="Kısa kayıt bırakın, doktor ziyaretinde paylaşın"
             onPress={() => navigation.navigate('SymptomDiary')}
+          />
+          <SettingsRow
+            icon="activity"
+            title="Ölçüm günlüğü"
+            subtitle="Tansiyon, şeker, kilo — doktor raporuna eklenir"
+            onPress={() => navigation.navigate('Measurements')}
           />
         </AnimatedReveal>
 
@@ -83,11 +102,22 @@ const Settings = () => {
           <SettingsRow
             icon="clipboard"
             title="Doktor günlüğü"
-            subtitle="Not ve yan etkileri tek dosyada dışa aktar"
+            subtitle="Not, yan etki ve ölçümler tek dosyada"
             onPress={() =>
               handleShareReport(
                 shareDiaryDoctorReport,
                 'Doktor günlüğü paylaşılamadı',
+              )
+            }
+          />
+          <SettingsRow
+            icon="users"
+            title="Bakıcı özeti"
+            subtitle="Aile profilinde 2+ kaçırılan doz varsa paylaş"
+            onPress={() =>
+              handleShareReport(
+                () => shareCaregiverSummary(getTodayDateKey()),
+                'Bakıcı özeti paylaşılamadı',
               )
             }
           />
@@ -111,8 +141,8 @@ const Settings = () => {
               Alert.alert(
                 'Widget ekle',
                 Platform.OS === 'ios'
-                  ? 'Ana ekrana basılı tutun → Widget Ekle → İlaç Takibi → Sıradaki ilaç.'
-                  : 'Ana ekrana basılı tutun → Widget’lar → İlaç Takibi.',
+                  ? 'Ana ekrana basılı tutun → Widget Ekle → İlaç Takibi → Sıradaki ilaç'
+                  : 'Ana ekrana basılı tutun → Widget’lar → İlaç Takibi',
               )
             }
           />
@@ -121,6 +151,24 @@ const Settings = () => {
         <AnimatedReveal index={5} animationKey={revealKey}>
           <SectionTitle title="YEDEKLEME" />
           <BackupSection />
+          <SettingsRow
+            icon="database"
+            title="Örnek veri yükle"
+            subtitle="Demo ilaç, ölçüm ve aile kaydı ekler"
+            onPress={async () => {
+              try {
+                const result = await seedDemoData({ force: true });
+                Alert.alert(
+                  'Örnek veri',
+                  result.seeded
+                    ? 'Örnek ilaçlar ve ölçümler eklendi. Ana sayfayı yenileyin'
+                    : 'Veri yüklenemedi',
+                );
+              } catch (error) {
+                Alert.alert('Hata', error?.message || 'Yüklenemedi');
+              }
+            }}
+          />
         </AnimatedReveal>
 
         <AnimatedReveal index={6} animationKey={revealKey}>

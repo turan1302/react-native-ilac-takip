@@ -1,0 +1,29 @@
+---
+description: Turkish UI copy punctuation for İlaç Takibi
+alwaysApply: true
+---
+
+# UI metin noktalama
+
+Kullanıcıya gösterilen Türkçe metinlerde (motivasyon, nudge, boş durum, bildirim gövdesi, ayar alt yazıları, onboarding, kaçırılan doz tavsiyesi, alert gövdeleri):
+
+- Cümle / açıklama metinlerinin **sonuna nokta (.) koyma**
+- Soru metinlerinin **sonuna mutlaka soru işareti (?) koy**
+- Ünlem (!) isteğe bağlı; nokta yerine tercih edilebilir
+- Placeholder’lardaki `...` kalsın
+- Teknik / yasal uzun metinler (KVKK, gizlilik politikası) bu kuralın dışında
+
+## Örnekler
+
+```text
+❌ Sağlığınız için böyle devam edin.
+✅ Sağlığınız için böyle devam edin
+
+❌ Kaçırdıysan doktora sor.
+✅ Kaçırdıysan doktora sor?
+
+❌ Bu ölçümü silmek istiyor musunuz
+✅ Bu ölçümü silmek istiyor musunuz?
+```
+
+Yeni metin üretirken veya mevcut kopyayı düzenlerken bu kuralı uygula.

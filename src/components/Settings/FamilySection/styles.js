@@ -1,94 +1,145 @@
 import { StyleSheet } from 'react-native';
 
-export const COLORS = {
-  primary: '#0D9488',
-  text: '#111827',
-  textMuted: '#9CA3AF',
-  border: '#E5E7EB',
-  white: '#FFFFFF',
-};
-
 const styles = StyleSheet.create({
   wrap: {
-    backgroundColor: COLORS.white,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    padding: 12,
+    padding: 14,
     marginBottom: 20,
   },
-  row: {
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    marginBottom: 14,
+  },
+  headerIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerText: {
+    flex: 1,
+  },
+  headerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  headerSubtitle: {
+    fontSize: 12,
+    lineHeight: 16,
+  },
+  list: {
+    gap: 8,
+  },
+  profileRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1.5,
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    paddingHorizontal: 10,
+    gap: 8,
   },
-  rowActive: {
-    backgroundColor: '#F0FDFA',
-    marginHorizontal: -4,
-    paddingHorizontal: 4,
-    borderRadius: 10,
-  },
-  rowMain: {
+  profileMain: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 12,
+  },
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileMeta: {
+    flex: 1,
+    gap: 4,
   },
   name: {
     fontSize: 15,
-    color: COLORS.text,
+    fontWeight: '600',
   },
-  nameActive: {
-    fontWeight: '700',
-    color: COLORS.primary,
+  badge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
   },
-  activeLabel: {
+  badgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.2,
+  },
+  deleteBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sectionLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
+    letterSpacing: 0.6,
+    marginTop: 16,
+    marginBottom: 8,
   },
   presetRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
-    marginTop: 12,
   },
   presetChip: {
-    backgroundColor: '#CCFBF1',
-    borderRadius: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    borderRadius: 12,
+    borderWidth: 1,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   presetText: {
-    color: COLORS.primary,
     fontWeight: '700',
-    fontSize: 12,
+    fontSize: 13,
+  },
+  addPanel: {
+    marginTop: 14,
+    borderRadius: 14,
+    borderWidth: 1,
+    padding: 10,
+    gap: 8,
   },
   addRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     gap: 8,
-    marginTop: 12,
   },
   input: {
     flex: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    borderRadius: 10,
+    borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
-    color: COLORS.text,
+    paddingVertical: 11,
+    fontSize: 14,
   },
   addButton: {
-    backgroundColor: COLORS.primary,
-    borderRadius: 10,
-    paddingHorizontal: 14,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     justifyContent: 'center',
+    minWidth: 72,
+    alignItems: 'center',
   },
   addButtonText: {
-    color: COLORS.white,
+    color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 14,
   },
 });
 

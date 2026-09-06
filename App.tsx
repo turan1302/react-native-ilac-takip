@@ -1,11 +1,12 @@
 import React, { useEffect } from 'react'
-import { AppState, Platform } from 'react-native';
+import { AppState, Linking, Platform } from 'react-native';
 import notifee, { EventType } from '@notifee/react-native';
 import Routes from "./src/routes";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AlertNotificationRoot } from "react-native-alert-notification";
 import ImmersiveMode from "react-native-immersive-mode";
 import { ProfileProvider } from './src/common/ProfileContext';
+import { ThemeProvider } from './src/common/ThemeContext';
 import {
     handleNotificationAction,
     initializeNotifications,
@@ -14,6 +15,7 @@ import {
 } from './src/common/NotificationService';
 import { subscribeDoseDeepLinks } from './src/common/DoseLinking';
 import { syncHomeSurfaces } from './src/common/WidgetService';
+import { seedDemoData } from './src/common/seedDemoData';
 
 const App = () => {
 
@@ -75,6 +77,19 @@ const App = () => {
       await rescheduleAllReminders();
     });
 
+    const handleSeedLink = async ({ url }) => {
+      if (url && String(url).includes('seed-demo')) {
+        try {
+          await seedDemoData({ force: true });
+        } catch (error) {
+          console.warn('seedDemoData failed:', error);
+        }
+      }
+    };
+
+    Linking.getInitialURL().then(url => handleSeedLink({ url }));
+    const seedSub = Linking.addEventListener('url', handleSeedLink);
+
     const unsubscribe = notifee.onForegroundEvent(event => {
       if (event.type === EventType.ACTION_PRESS) {
         handleNotificationAction(event);
@@ -97,6 +112,7 @@ const App = () => {
       appResume.remove();
       unsubscribe();
       unsubscribeDeepLinks();
+      seedSub.remove();
     };
   }, []);
 
@@ -105,9 +121,11 @@ const App = () => {
   return (
     <AlertNotificationRoot theme='dark'>
       <SafeAreaProvider>
-        <ProfileProvider>
-          <Routes />
-        </ProfileProvider>
+        <ThemeProvider>
+          <ProfileProvider>
+            <Routes />
+          </ProfileProvider>
+        </ThemeProvider>
       </SafeAreaProvider>
     </AlertNotificationRoot>
   )

@@ -14,6 +14,9 @@ export const QUIET_HOURS_START_KEY = 'quiet_hours_start';
 export const QUIET_HOURS_END_KEY = 'quiet_hours_end';
 export const SYMPTOM_DIARY_KEY = 'symptom_diary_entries';
 export const TRAVEL_SHIFT_KEY = 'travel_shift';
+export const MEASUREMENTS_KEY = 'health_measurements';
+export const THEME_MODE_KEY = 'theme_mode';
+export const CAREGIVER_ALERTS_KEY = 'caregiver_alert_dismissals';
 
 export const MANAGED_STORAGE_KEYS = [
   PILLS_STORAGE_KEY,
@@ -29,4 +32,7 @@ export const MANAGED_STORAGE_KEYS = [
   QUIET_HOURS_END_KEY,
   SYMPTOM_DIARY_KEY,
   TRAVEL_SHIFT_KEY,
+  MEASUREMENTS_KEY,
+  THEME_MODE_KEY,
+  CAREGIVER_ALERTS_KEY,
 ];

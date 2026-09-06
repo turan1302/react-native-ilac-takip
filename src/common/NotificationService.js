@@ -110,9 +110,9 @@ const getScheduleSlots = pill =>
 const getNotificationBody = (pill, time) => {
   const meal = getMealRelationLabel(pill.mealRelation);
   const timePart = time ? ` (${time})` : '';
-  const mealPart = meal ? ` ${meal} alın.` : '';
+  const mealPart = meal ? ` · ${meal} alın` : '';
 
-  return `${pill.name} alma zamanınız geldi${timePart}.${mealPart}`;
+  return `${pill.name} alma zamanınız geldi${timePart}${mealPart}`;
 };
 
 const androidReminderStyle = {
@@ -161,7 +161,7 @@ const toItemsPayload = items =>
 const buildNotification = (pill, time, id, displayTime = time) => ({
   id,
   title: 'İlaç saati',
-  body: `${getNotificationBody(pill, displayTime || time)} Hadi al.`,
+  body: `${getNotificationBody(pill, displayTime || time)} Hadi al`,
   data: {
     pillId: String(pill.id),
     time: time || '',
@@ -182,7 +182,7 @@ const buildGroupedNotification = (items, id) => {
   return {
     id,
     title: 'İlaç saati',
-    body: `${names} alma zamanı (${displayTime}). Hadi al.`,
+    body: `${names} alma zamanı (${displayTime}) Hadi al`,
     data: {
       grouped: '1',
       time,
@@ -211,8 +211,8 @@ const buildFollowUpNotification = (items, id) => {
     title: 'Hâlâ almadın',
     body:
       items.length === 1
-        ? `${items[0].pill.name} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al.`
-        : `${names} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al.`,
+        ? `${items[0].pill.name} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al`
+        : `${names} henüz alınmadı (${displayTime}). ${waitLabel} geçti, hadi al`,
     data: {
       followUp: '1',
       grouped: items.length > 1 ? '1' : '0',
@@ -340,8 +340,8 @@ const scheduleFollowUpNudges = async (pills, now, quiet, shiftsByProfile) => {
 const buildRefillNotification = (pill, days, id) => {
   const body =
     days <= 0
-      ? `${pill.name} bitti. Eczaneden / reçeteden yenile.`
-      : `${pill.name} ≈ ${days} gün sonra biter. Reçeteyi yenile.`;
+      ? `${pill.name} bitti. Eczaneden / reçeteden yenile`
+      : `${pill.name} ≈ ${days} gün sonra biter. Reçeteyi yenile`;
 
   return {
     id,
@@ -759,7 +759,7 @@ export const notifyLowStockIfNeeded = async pill => {
       id: `stock_${latest.id}`,
       title: 'Stok azalıyor',
       body: `${latest.name} stoğu ${latest.stockQuantity} kaldı. ${
-        getStockEtaLabel(latest) || 'Bitmeden yenileyin.'
+        getStockEtaLabel(latest) || 'Bitmeden yenileyin'
       }`,
       android: {
         channelId: CHANNEL_ID,

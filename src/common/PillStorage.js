@@ -28,6 +28,7 @@ export const normalizePill = pill => {
     pauseUntil: source.pauseUntil || '',
     missedAdvice: source.missedAdvice || '',
     missedAdviceNote: source.missedAdviceNote || '',
+    photoUri: source.photoUri || '',
   };
 };
 

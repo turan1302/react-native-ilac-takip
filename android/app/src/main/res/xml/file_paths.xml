@@ -2,4 +2,5 @@
 <paths>
     <cache-path name="share" path="." />
     <files-path name="backups" path="backups/" />
+    <files-path name="pill_photos" path="pill_photos/" />
 </paths>

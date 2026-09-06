@@ -5,7 +5,7 @@ import styles, { COLORS } from './styles';
 
 const EmptyState = ({
   title = 'Bildirim yok',
-  description = 'Bugün için kaçırılmış ilaç hatırlatması bulunmuyor.',
+  description = 'Bugün için kaçırılmış ilaç hatırlatması bulunmuyor',
 }) => (
   <View style={styles.emptyState}>
     <View style={styles.emptyIcon}>

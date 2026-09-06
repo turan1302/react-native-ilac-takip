@@ -53,6 +53,7 @@ import ScheduleExtras, {
 import { MealRelationField } from '../../../components/Pills/AddPill/MealRelationField';
 import PauseField from '../../../components/Pills/AddPill/PauseField';
 import MissedAdviceField from '../../../components/Pills/AddPill/MissedAdviceField';
+import PhotoField from '../../../components/Pills/AddPill/PhotoField';
 import styles, { COLORS } from './styles';
 
 const AddPill = () => {
@@ -88,6 +89,7 @@ const AddPill = () => {
   const [missedAdviceNote, setMissedAdviceNote] = useState('');
   const [pauseStart, setPauseStart] = useState('');
   const [pauseUntil, setPauseUntil] = useState('');
+  const [photoUri, setPhotoUri] = useState('');
 
   const isAsNeeded = isAsNeededFrequency(frequency);
   const intervalHours = INTERVAL_HOURS[frequency];
@@ -202,6 +204,7 @@ const AddPill = () => {
         missedAdviceNote: missedAdviceNote.trim(),
         pauseStart,
         pauseUntil,
+        photoUri,
       });
 
       const permissionResult = await ensureNotificationPermissions();
@@ -365,6 +368,10 @@ const AddPill = () => {
           </AnimatedReveal>
 
           <AnimatedReveal index={13}>
+            <PhotoField photoUri={photoUri} onChange={setPhotoUri} />
+          </AnimatedReveal>
+
+          <AnimatedReveal index={14}>
             <FormActions
               saving={saving}
               onSave={handleSave}

@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { Animated, Text, View } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
-import styles, { COLORS } from './styles';
+import { useTheme } from '../../../common/ThemeContext';
+import styles from './styles';
 
 const TabBarItem = ({ focused, icon, label }) => {
+  const { colors } = useTheme();
   const progress = useRef(new Animated.Value(focused ? 1 : 0)).current;
 
   useEffect(() => {
@@ -30,12 +32,15 @@ const TabBarItem = ({ focused, icon, label }) => {
         <Feather
           name={icon}
           size={22}
-          color={focused ? COLORS.active : COLORS.inactive}
+          color={focused ? colors.primary : colors.textMuted}
         />
       </Animated.View>
       <Text
         numberOfLines={1}
-        style={[styles.label, focused ? styles.labelActive : styles.labelInactive]}
+        style={[
+          styles.label,
+          { color: focused ? colors.primary : colors.textMuted },
+        ]}
       >
         {label}
       </Text>

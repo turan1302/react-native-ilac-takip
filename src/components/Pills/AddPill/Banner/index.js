@@ -4,7 +4,7 @@ import { PILL_FORM_BANNER_IMAGE } from '../../../../datas/bannerImages';
 import styles from './styles';
 
 const Banner = ({
-  text = 'Yeni bir tedavi planı oluşturun.',
+  text = 'Yeni bir tedavi planı oluşturun',
 }) => (
   <View style={styles.banner}>
     <Image

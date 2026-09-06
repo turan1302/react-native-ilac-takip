@@ -22,10 +22,17 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.bridge.ReadableMap
 import java.io.File
 
+import com.facebook.react.bridge.WritableNativeMap
+import android.util.Base64
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import java.io.ByteArrayOutputStream
+
 class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
   ReactContextBaseJavaModule(reactContext) {
 
   private var pickPromise: Promise? = null
+  private var pickMode: String = "backup"
 
   private val activityEventListener: ActivityEventListener =
     object : BaseActivityEventListener() {
@@ -35,12 +42,14 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
         resultCode: Int,
         intent: Intent?,
       ) {
-        if (requestCode != PICK_BACKUP) {
+        if (requestCode != PICK_BACKUP && requestCode != PICK_IMAGE) {
           return
         }
 
         val promise = pickPromise ?: return
         pickPromise = null
+        val mode = pickMode
+        pickMode = "backup"
 
         if (resultCode != Activity.RESULT_OK || intent?.data == null) {
           promise.reject("PICK_CANCELLED", "cancelled")
@@ -49,6 +58,10 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
 
         try {
           val uri = intent.data!!
+          if (mode == "image") {
+            promise.resolve(importPickedImage(activity, uri))
+            return
+          }
           try {
             activity.contentResolver.takePersistableUriPermission(
               uri,
@@ -138,6 +151,7 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
     }
 
     pickPromise = promise
+    pickMode = "backup"
     val openDocument =
       Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
         addCategory(Intent.CATEGORY_OPENABLE)
@@ -165,6 +179,57 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
         pickPromise = null
         promise.reject("PICK_FAILED", error)
       }
+    }
+  }
+
+  @ReactMethod
+  fun pickImage(promise: Promise) {
+    val activity = reactContext.currentActivity
+    if (activity == null) {
+      promise.reject("PICK_FAILED", "Ekran bulunamadı")
+      return
+    }
+
+    pickPromise = promise
+    pickMode = "image"
+    val intent =
+      Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
+        type = "image/*"
+      }
+
+    try {
+      activity.startActivityForResult(intent, PICK_IMAGE)
+    } catch (error: Exception) {
+      pickPromise = null
+      promise.reject("PICK_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun readImageBase64(path: String, promise: Promise) {
+    try {
+      val file = File(path.removePrefix("file://"))
+      if (!file.exists()) {
+        promise.resolve("")
+        return
+      }
+      val bytes = file.readBytes()
+      promise.resolve(Base64.encodeToString(bytes, Base64.NO_WRAP))
+    } catch (error: Exception) {
+      promise.reject("READ_IMAGE_FAILED", error)
+    }
+  }
+
+  @ReactMethod
+  fun writeImageBase64(filename: String, base64: String, promise: Promise) {
+    try {
+      val name = filename.ifBlank { "pill_${System.currentTimeMillis()}.jpg" }
+      val file = photoFile(name)
+      val bytes = Base64.decode(base64, Base64.DEFAULT)
+      file.writeBytes(bytes)
+      promise.resolve("file://${file.absolutePath}")
+    } catch (error: Exception) {
+      promise.reject("WRITE_IMAGE_FAILED", error)
     }
   }
 
@@ -225,6 +290,47 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
       dir.mkdirs()
     }
     return File(dir, name)
+  }
+
+  private fun photoFile(name: String): File {
+    val dir = File(reactContext.filesDir, "pill_photos")
+    if (!dir.exists()) {
+      dir.mkdirs()
+    }
+    return File(dir, name)
+  }
+
+  private fun importPickedImage(activity: Activity, uri: Uri): WritableNativeMap {
+    val bytes =
+      activity.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+        ?: throw IllegalStateException("Görsel okunamadı")
+    val bitmap =
+      BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+        ?: throw IllegalStateException("Görsel çözülemedi")
+    val scaled = scaleBitmap(bitmap, 1280)
+    val out = ByteArrayOutputStream()
+    scaled.compress(Bitmap.CompressFormat.JPEG, 82, out)
+    val jpeg = out.toByteArray()
+    val file = photoFile("pill_${System.currentTimeMillis()}.jpg")
+    file.writeBytes(jpeg)
+    val map = WritableNativeMap()
+    map.putString("path", "file://${file.absolutePath}")
+    map.putString("base64", Base64.encodeToString(jpeg, Base64.NO_WRAP))
+    return map
+  }
+
+  private fun scaleBitmap(source: Bitmap, maxSide: Int): Bitmap {
+    val largest = maxOf(source.width, source.height)
+    if (largest <= maxSide) {
+      return source
+    }
+    val ratio = maxSide.toFloat() / largest.toFloat()
+    return Bitmap.createScaledBitmap(
+      source,
+      (source.width * ratio).toInt().coerceAtLeast(1),
+      (source.height * ratio).toInt().coerceAtLeast(1),
+      true,
+    )
   }
 
   private fun mimeForName(name: String): String =
@@ -324,6 +430,7 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
 
   companion object {
     private const val PICK_BACKUP = 7412
+    private const val PICK_IMAGE = 7413
     private const val BACKUP_FILE_NAME = "ilac-takibi-yedek.json"
   }
 }

@@ -8,6 +8,7 @@ import {
 } from '../../../common/TravelShiftStorage';
 import { rescheduleAllReminders } from '../../../common/NotificationService';
 import { useProfile } from '../../../common/ProfileContext';
+import { useTheme } from '../../../common/ThemeContext';
 import { getTodayDateKey } from '../../../common/IntakeStorage';
 import {
   buildDateKey,
@@ -18,7 +19,7 @@ import {
   shiftDateKeyByDays,
 } from '../../../common/pillHelpers';
 import DatePickerModal from '../../Program/DatePickerModal';
-import styles, { COLORS } from '../QuietHoursSection/styles';
+import styles from '../QuietHoursSection/styles';
 
 const OFFSETS = [-2, -1, 0, 1, 2];
 
@@ -32,6 +33,7 @@ const offsetLabel = hours => {
 
 const TravelShiftSection = () => {
   const { activeProfileId } = useProfile();
+  const { colors } = useTheme();
   const [offsetHours, setOffsetHours] = useState(0);
   const [dateKey, setDateKey] = useState(getTodayDateKey());
   const [dateModalVisible, setDateModalVisible] = useState(false);
@@ -87,14 +89,23 @@ const TravelShiftSection = () => {
   }, [active, dateKey, offsetHours]);
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.headerRow}>
-        <View style={styles.iconWrapper}>
-          <Feather name="sunrise" size={18} color={COLORS.primary} />
+        <View style={[styles.iconWrapper, { backgroundColor: colors.primarySoft }]}>
+          <Feather name="sunrise" size={18} color={colors.primary} />
         </View>
         <View style={styles.textWrap}>
-          <Text style={styles.title}>Tatil / seyahat saati</Text>
-          <Text style={styles.subtitle}>{subtitle}</Text>
+          <Text style={[styles.title, { color: colors.text }]}>
+            Tatil / seyahat saati
+          </Text>
+          <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+            {subtitle}
+          </Text>
         </View>
       </View>
 
@@ -104,34 +115,69 @@ const TravelShiftSection = () => {
             key={hours}
             style={[
               styles.timeButton,
-              offsetHours === hours && { borderColor: COLORS.primary },
+              {
+                backgroundColor: colors.background,
+                borderColor:
+                  offsetHours === hours ? colors.primary : colors.border,
+              },
             ]}
             onPress={() => persist(hours, dateKey || today)}
           >
-            <Text style={styles.timeCaption}>Saat</Text>
-            <Text style={styles.timeValue}>{offsetLabel(hours)}</Text>
+            <Text style={[styles.timeCaption, { color: colors.textSecondary }]}>
+              Saat
+            </Text>
+            <Text style={[styles.timeValue, { color: colors.text }]}>
+              {offsetLabel(hours)}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
 
       <View style={styles.timeRow}>
         <TouchableOpacity
-          style={styles.timeButton}
+          style={[
+            styles.timeButton,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={() => persist(offsetHours, today)}
         >
-          <Text style={styles.timeCaption}>Gün</Text>
-          <Text style={styles.timeValue}>Bugün</Text>
+          <Text style={[styles.timeCaption, { color: colors.textSecondary }]}>
+            Gün
+          </Text>
+          <Text style={[styles.timeValue, { color: colors.text }]}>Bugün</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.timeButton}
+          style={[
+            styles.timeButton,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+            },
+          ]}
           onPress={() => persist(offsetHours, shiftDateKeyByDays(today, 1))}
         >
-          <Text style={styles.timeCaption}>Gün</Text>
-          <Text style={styles.timeValue}>Yarın</Text>
+          <Text style={[styles.timeCaption, { color: colors.textSecondary }]}>
+            Gün
+          </Text>
+          <Text style={[styles.timeValue, { color: colors.text }]}>Yarın</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.timeButton} onPress={openDateModal}>
-          <Text style={styles.timeCaption}>Tarih</Text>
-          <Text style={styles.timeValue} numberOfLines={1}>
+        <TouchableOpacity
+          style={[
+            styles.timeButton,
+            {
+              backgroundColor: colors.background,
+              borderColor: colors.border,
+            },
+          ]}
+          onPress={openDateModal}
+        >
+          <Text style={[styles.timeCaption, { color: colors.textSecondary }]}>
+            Tarih
+          </Text>
+          <Text style={[styles.timeValue, { color: colors.text }]} numberOfLines={1}>
             {dateKey === today ? 'Bugün' : dateKey.slice(5)}
           </Text>
         </TouchableOpacity>

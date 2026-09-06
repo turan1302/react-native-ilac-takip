@@ -1,15 +1,27 @@
 import React from 'react';
 import { View, Text } from 'react-native';
+import { useTheme } from '../../../common/ThemeContext';
 import styles from './styles';
 
 const EmptyState = ({
   title = 'Bu gün için kayıt yok',
-  description = 'Seçili tarihte planlanmış ilaç bulunmuyor.',
-}) => (
-  <View style={styles.emptyState}>
-    <Text style={styles.emptyTitle}>{title}</Text>
-    <Text style={styles.emptyText}>{description}</Text>
-  </View>
-);
+  description = 'Seçili tarihte planlanmış ilaç bulunmuyor',
+}) => {
+  const { colors } = useTheme();
+
+  return (
+    <View
+      style={[
+        styles.emptyState,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
+      <Text style={[styles.emptyTitle, { color: colors.text }]}>{title}</Text>
+      <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
+        {description}
+      </Text>
+    </View>
+  );
+};
 
 export default EmptyState;

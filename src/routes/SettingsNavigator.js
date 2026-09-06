@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Settings from '../screens/Settings';
 import LegalDocument from '../screens/Settings/LegalDocument';
 import SymptomDiary from '../screens/Settings/SymptomDiary';
+import Measurements from '../screens/Settings/Measurements';
 
 const Stack = createNativeStackNavigator();
 
@@ -19,6 +20,7 @@ const SettingsNavigator = () => {
       <Stack.Screen name="Settings" component={Settings} />
       <Stack.Screen name="LegalDocument" component={LegalDocument} />
       <Stack.Screen name="SymptomDiary" component={SymptomDiary} />
+      <Stack.Screen name="Measurements" component={Measurements} />
     </Stack.Navigator>
   );
 };

@@ -46,6 +46,7 @@ import ScheduleExtras, {
 import { MealRelationField } from '../../../components/Pills/AddPill/MealRelationField';
 import PauseField from '../../../components/Pills/AddPill/PauseField';
 import MissedAdviceField from '../../../components/Pills/AddPill/MissedAdviceField';
+import PhotoField from '../../../components/Pills/AddPill/PhotoField';
 import DosageTypeRow from '../../../components/Pills/AddPill/DosageTypeRow';
 import FormActions from '../../../components/Pills/AddPill/FormActions';
 import FrequencyChips from '../../../components/Pills/AddPill/FrequencyChips';
@@ -96,6 +97,7 @@ const EditPill = () => {
   const [missedAdviceNote, setMissedAdviceNote] = useState('');
   const [pauseStart, setPauseStart] = useState('');
   const [pauseUntil, setPauseUntil] = useState('');
+  const [photoUri, setPhotoUri] = useState('');
 
   const isAsNeeded = isAsNeededFrequency(frequency);
   const intervalHours = INTERVAL_HOURS[frequency];
@@ -140,6 +142,7 @@ const EditPill = () => {
       setMissedAdviceNote(pill.missedAdviceNote || '');
       setPauseStart(pill.pauseStart || '');
       setPauseUntil(pill.pauseUntil || '');
+      setPhotoUri(pill.photoUri || '');
       setLoading(false);
     };
 
@@ -248,6 +251,7 @@ const EditPill = () => {
         missedAdviceNote: missedAdviceNote.trim(),
         pauseStart,
         pauseUntil,
+        photoUri,
       });
 
       await schedulePillReminder(updatedPill);
@@ -344,7 +348,7 @@ const EditPill = () => {
           </AnimatedReveal>
 
           <AnimatedReveal index={1}>
-            <Banner text="İlaç bilgilerinizi güncelleyin." />
+            <Banner text="İlaç bilgilerinizi güncelleyin" />
           </AnimatedReveal>
 
           <AnimatedReveal index={2}>
@@ -455,6 +459,10 @@ const EditPill = () => {
           </AnimatedReveal>
 
           <AnimatedReveal index={13}>
+            <PhotoField photoUri={photoUri} onChange={setPhotoUri} />
+          </AnimatedReveal>
+
+          <AnimatedReveal index={14}>
             <FormActions
               saving={saving}
               disabled={deleting}

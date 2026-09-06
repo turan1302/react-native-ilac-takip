@@ -46,13 +46,13 @@ export const isPillPausedOnDate = (pill, dateKey) => {
 export const MISSED_ADVICE_OPTIONS = [
   { value: 'take_now', label: 'Şimdi al' },
   { value: 'wait_next', label: 'Bir sonrakini bekle' },
-  { value: 'ask_doctor', label: 'Doktora sor' },
+  { value: 'ask_doctor', label: 'Doktora sor?' },
 ];
 
 const MISSED_ADVICE_TEXT = {
-  take_now: 'Kaçırdıysan şimdi al.',
-  wait_next: 'Kaçırdıysan bir sonrakini bekle, çift doz alma.',
-  ask_doctor: 'Kaçırdıysan doktora sor.',
+  take_now: 'Kaçırdıysan şimdi al',
+  wait_next: 'Kaçırdıysan bir sonrakini bekle, çift doz alma',
+  ask_doctor: 'Kaçırdıysan doktora sor?',
 };
 
 export const getMissedAdviceText = pill => {

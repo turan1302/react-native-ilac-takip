@@ -4,6 +4,60 @@ import UniformTypeIdentifiers
 import WidgetKit
 import React
 
+private final class ImagePickerSession: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+  static let shared = ImagePickerSession()
+
+  private var resolve: RCTPromiseResolveBlock?
+  private var reject: RCTPromiseRejectBlock?
+
+  func present(
+    from presenter: UIViewController,
+    resolve: @escaping RCTPromiseResolveBlock,
+    reject: @escaping RCTPromiseRejectBlock
+  ) {
+    self.resolve = resolve
+    self.reject = reject
+
+    let picker = UIImagePickerController()
+    picker.sourceType = .photoLibrary
+    picker.delegate = self
+    picker.allowsEditing = false
+    presenter.present(picker, animated: true)
+  }
+
+  func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+    picker.dismiss(animated: true)
+    reject?("PICK_CANCELLED", "cancelled", nil)
+    finish()
+  }
+
+  func imagePickerController(
+    _ picker: UIImagePickerController,
+    didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey: Any]
+  ) {
+    picker.dismiss(animated: true)
+
+    guard let image = info[.originalImage] as? UIImage else {
+      reject?("PICK_FAILED", "Görsel okunamadı", nil)
+      finish()
+      return
+    }
+
+    do {
+      let payload = try NextDoseWidgetModule.savePickedImage(image)
+      resolve?(payload)
+    } catch {
+      reject?("PICK_FAILED", error.localizedDescription, error)
+    }
+    finish()
+  }
+
+  private func finish() {
+    resolve = nil
+    reject = nil
+  }
+}
+
 private final class BackupPickerSession: NSObject, UIDocumentPickerDelegate {
   static let shared = BackupPickerSession()
 
@@ -220,6 +274,103 @@ class NextDoseWidgetModule: NSObject {
     rejecter reject: RCTPromiseRejectBlock
   ) {
     resolve(UIPasteboard.general.string ?? "")
+  }
+
+  @objc(pickImage:rejecter:)
+  func pickImage(
+    _ resolve: @escaping RCTPromiseResolveBlock,
+    rejecter reject: @escaping RCTPromiseRejectBlock
+  ) {
+    DispatchQueue.main.async {
+      guard let presenter = Self.topViewController() else {
+        reject("PICK_FAILED", "Ekran bulunamadı", nil)
+        return
+      }
+      ImagePickerSession.shared.present(
+        from: presenter,
+        resolve: resolve,
+        reject: reject
+      )
+    }
+  }
+
+  @objc(readImageBase64:resolver:rejecter:)
+  func readImageBase64(
+    _ path: String,
+    resolver resolve: RCTPromiseResolveBlock,
+    rejecter reject: RCTPromiseRejectBlock
+  ) {
+    do {
+      let cleaned = path.replacingOccurrences(of: "file://", with: "")
+      let data = try Data(contentsOf: URL(fileURLWithPath: cleaned))
+      resolve(data.base64EncodedString())
+    } catch {
+      resolve("")
+    }
+  }
+
+  @objc(writeImageBase64:base64:resolver:rejecter:)
+  func writeImageBase64(
+    _ filename: String,
+    base64: String,
+    resolver resolve: RCTPromiseResolveBlock,
+    rejecter reject: RCTPromiseRejectBlock
+  ) {
+    do {
+      let name = filename.isEmpty ? "pill_\(Int(Date().timeIntervalSince1970)).jpg" : filename
+      guard let data = Data(base64Encoded: base64) else {
+        reject("WRITE_IMAGE_FAILED", "Geçersiz görsel", nil)
+        return
+      }
+      let url = try Self.photoDirectory().appendingPathComponent(name)
+      try data.write(to: url, atomically: true)
+      resolve("file://\(url.path)")
+    } catch {
+      reject("WRITE_IMAGE_FAILED", error.localizedDescription, error)
+    }
+  }
+
+  static func savePickedImage(_ image: UIImage) throws -> [String: String] {
+    let scaled = Self.scaleImage(image, maxSide: 1280)
+    guard let data = scaled.jpegData(compressionQuality: 0.82) else {
+      throw NSError(
+        domain: "NextDoseWidget",
+        code: 2,
+        userInfo: [NSLocalizedDescriptionKey: "Görsel kaydedilemedi"]
+      )
+    }
+    let name = "pill_\(Int(Date().timeIntervalSince1970)).jpg"
+    let url = try photoDirectory().appendingPathComponent(name)
+    try data.write(to: url, atomically: true)
+    return [
+      "path": "file://\(url.path)",
+      "base64": data.base64EncodedString(),
+    ]
+  }
+
+  private static func photoDirectory() throws -> URL {
+    let docs = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+      ?? FileManager.default.temporaryDirectory
+    let dir = docs.appendingPathComponent("pill_photos", isDirectory: true)
+    if !FileManager.default.fileExists(atPath: dir.path) {
+      try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+    }
+    return dir
+  }
+
+  private static func scaleImage(_ image: UIImage, maxSide: CGFloat) -> UIImage {
+    let size = image.size
+    let largest = max(size.width, size.height)
+    guard largest > maxSide else {
+      return image
+    }
+    let ratio = maxSide / largest
+    let next = CGSize(width: size.width * ratio, height: size.height * ratio)
+    UIGraphicsBeginImageContextWithOptions(next, true, 1)
+    image.draw(in: CGRect(origin: .zero, size: next))
+    let result = UIGraphicsGetImageFromCurrentImageContext() ?? image
+    UIGraphicsEndImageContext()
+    return result
   }
 
   private func writeShareFile(_ contents: String, filename: String) throws -> URL {

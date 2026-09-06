@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Keyboard, Platform, Pressable, View } from 'react-native';
 import { getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTheme } from '../../../common/ThemeContext';
 import styles from './styles';
 
-const HIDDEN_ROUTES = ['AddPill', 'EditPill', 'LegalDocument'];
+const HIDDEN_ROUTES = ['AddPill', 'EditPill', 'LegalDocument', 'SymptomDiary', 'Measurements'];
 
 const AnimatedTabBar = ({ state, descriptors, navigation }) => {
   const insets = useSafeAreaInsets();
+  const { colors, isDark } = useTheme();
   const indicatorX = useRef(new Animated.Value(0)).current;
   const [tabWidth, setTabWidth] = useState(0);
   const [keyboardVisible, setKeyboardVisible] = useState(false);
@@ -57,7 +59,17 @@ const AnimatedTabBar = ({ state, descriptors, navigation }) => {
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'ios' ? 8 : 10);
 
   return (
-    <View style={[styles.bar, { paddingBottom: bottomInset, height: 64 + bottomInset }]}>
+    <View
+      style={[
+        styles.bar,
+        {
+          paddingBottom: bottomInset,
+          height: 64 + bottomInset,
+          backgroundColor: colors.tabBar,
+          borderColor: colors.border,
+        },
+      ]}
+    >
       <View
         style={styles.track}
         onLayout={event => {
@@ -73,6 +85,7 @@ const AnimatedTabBar = ({ state, descriptors, navigation }) => {
               {
                 width: tabWidth - 10,
                 marginLeft: 5,
+                backgroundColor: isDark ? '#164E63' : '#BBF7D0',
                 transform: [{ translateX: indicatorX }],
               },
             ]}

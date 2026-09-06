@@ -216,7 +216,7 @@ const SymptomDiary = () => {
         </AnimatedReveal>
 
         {!entries.length ? (
-          <Text style={styles.empty}>Henüz not yok. İlk kaydı yukarıdan ekleyin.</Text>
+          <Text style={styles.empty}>Henüz not yok. İlk kaydı yukarıdan ekleyin</Text>
         ) : (
           entries.map((entry, index) => (
             <AnimatedReveal key={entry.id} index={index + 3}>

@@ -5,7 +5,7 @@ import styles, { COLORS } from '../ScheduleExtras/styles';
 
 const MissedAdviceField = ({ value, note, onChange, onChangeNote, onFocus }) => (
   <View style={styles.fieldGroup}>
-    <Text style={styles.label}>Kaçırınca ne yapayım</Text>
+    <Text style={styles.label}>Kaçırınca ne yapayım?</Text>
     <View style={styles.chipsWrap}>
       {MISSED_ADVICE_OPTIONS.map(item => {
         const active = value === item.value;

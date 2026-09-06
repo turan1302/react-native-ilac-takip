@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { MONTH_NAMES } from '../../../common/dailyHelpers';
+import { useTheme } from '../../../common/ThemeContext';
 import styles from './styles';
 
 const DatePickerModal = ({
@@ -25,120 +26,99 @@ const DatePickerModal = ({
   onConfirm,
 }) => {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
+
+  const renderColumn = (items, selected, onSelect, labelFn = v => v) => (
+    <ScrollView
+      style={styles.datePickerColumn}
+      showsVerticalScrollIndicator={false}
+    >
+      {items.map(item => {
+        const active = selected === item;
+        return (
+          <TouchableOpacity
+            key={String(item)}
+            style={[
+              styles.datePickerItem,
+              active && { backgroundColor: colors.primarySoft },
+            ]}
+            onPress={() => onSelect(item)}
+          >
+            <Text
+              style={[
+                styles.datePickerItemText,
+                { color: colors.text },
+                active && { color: colors.primary, fontWeight: '700' },
+              ]}
+            >
+              {labelFn(item)}
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
 
   return (
-  <Modal
-    visible={visible}
-    transparent
-    animationType="slide"
-    onRequestClose={onClose}
-  >
-    <TouchableOpacity
-      style={styles.modalOverlay}
-      activeOpacity={1}
-      onPress={onClose}
+    <Modal
+      visible={visible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <TouchableOpacity activeOpacity={1} onPress={() => {}}>
-        <View style={[styles.modalContent, { paddingBottom: 32 + insets.bottom }]}>
-          <Text style={styles.modalTitle}>Tarih Seçin</Text>
-
-          <TouchableOpacity style={styles.todayButton} onPress={onGoToToday}>
-            <Text style={styles.todayButtonText}>Bugüne Git</Text>
-          </TouchableOpacity>
-
-          <View style={styles.datePickerRow}>
-            <ScrollView
-              style={styles.datePickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {dayOptions.map(day => (
-                <TouchableOpacity
-                  key={day}
-                  style={[
-                    styles.datePickerItem,
-                    tempDay === day && styles.datePickerItemActive,
-                  ]}
-                  onPress={() => onSelectDay(day)}
-                >
-                  <Text
-                    style={[
-                      styles.datePickerItemText,
-                      tempDay === day && styles.datePickerItemTextActive,
-                    ]}
-                  >
-                    {day}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-
-            <ScrollView
-              style={styles.datePickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {MONTH_NAMES.map((month, index) => {
-                const monthValue = index + 1;
-
-                return (
-                  <TouchableOpacity
-                    key={month}
-                    style={[
-                      styles.datePickerItem,
-                      tempMonth === monthValue && styles.datePickerItemActive,
-                    ]}
-                    onPress={() => onSelectMonth(monthValue)}
-                  >
-                    <Text
-                      style={[
-                        styles.datePickerItemText,
-                        tempMonth === monthValue &&
-                          styles.datePickerItemTextActive,
-                      ]}
-                    >
-                      {month}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            <ScrollView
-              style={styles.datePickerColumn}
-              showsVerticalScrollIndicator={false}
-            >
-              {yearOptions.map(year => (
-                <TouchableOpacity
-                  key={year}
-                  style={[
-                    styles.datePickerItem,
-                    tempYear === year && styles.datePickerItemActive,
-                  ]}
-                  onPress={() => onSelectYear(year)}
-                >
-                  <Text
-                    style={[
-                      styles.datePickerItemText,
-                      tempYear === year && styles.datePickerItemTextActive,
-                    ]}
-                  >
-                    {year}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          <TouchableOpacity
-            style={styles.modalConfirmButton}
-            onPress={onConfirm}
-            activeOpacity={0.85}
+      <TouchableOpacity
+        style={styles.modalOverlay}
+        activeOpacity={1}
+        onPress={onClose}
+      >
+        <TouchableOpacity activeOpacity={1} onPress={() => {}}>
+          <View
+            style={[
+              styles.modalContent,
+              {
+                paddingBottom: 32 + insets.bottom,
+                backgroundColor: colors.card,
+              },
+            ]}
           >
-            <Text style={styles.modalConfirmButtonText}>Tamam</Text>
-          </TouchableOpacity>
-        </View>
+            <Text style={[styles.modalTitle, { color: colors.text }]}>
+              Tarih Seçin
+            </Text>
+
+            <TouchableOpacity
+              style={[styles.todayButton, { backgroundColor: colors.iconBg }]}
+              onPress={onGoToToday}
+            >
+              <Text style={[styles.todayButtonText, { color: colors.primary }]}>
+                Bugüne Git
+              </Text>
+            </TouchableOpacity>
+
+            <View style={styles.datePickerRow}>
+              {renderColumn(dayOptions, tempDay, onSelectDay)}
+              {renderColumn(
+                MONTH_NAMES.map((_, i) => i + 1),
+                tempMonth,
+                onSelectMonth,
+                m => MONTH_NAMES[m - 1],
+              )}
+              {renderColumn(yearOptions, tempYear, onSelectYear)}
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.modalConfirmButton,
+                { backgroundColor: colors.primary },
+              ]}
+              onPress={onConfirm}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.modalConfirmButtonText}>Tamam</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
       </TouchableOpacity>
-    </TouchableOpacity>
-  </Modal>
+    </Modal>
   );
 };
 

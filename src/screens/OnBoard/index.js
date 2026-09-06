@@ -16,21 +16,21 @@ const SLIDES = [
     icon: 'pill',
     title: 'İlaçlarınızı Kaydedin',
     description:
-      'Kullandığınız ilaçları, türlerini ve dozajlarını kolayca ekleyin.',
+      'Kullandığınız ilaçları, türlerini ve dozajlarını kolayca ekleyin',
   },
   {
     id: '2',
     icon: 'clock-outline',
     title: 'Saatlerinizi Belirleyin',
     description:
-      'Günde kaç kez ve hangi saatlerde alacağınızı kendiniz ayarlayın.',
+      'Günde kaç kez ve hangi saatlerde alacağınızı kendiniz ayarlayın',
   },
   {
     id: '3',
     icon: 'bell-ring-outline',
     title: 'Zamanında Hatırlatın',
     description:
-      'İlaç saatiniz geldiğinde bildirim alın, hiçbir dozu kaçırmayın.',
+      'İlaç saatiniz geldiğinde bildirim alın, hiçbir dozu kaçırmayın',
   },
 ];
 

@@ -1,6 +1,7 @@
 import { NativeModules, Share, Platform } from 'react-native';
 import { getIntakeMapForDate, getTodayDateKey } from './IntakeStorage';
 import { getDiaryEntries } from './DiaryStorage';
+import { getMeasurements } from './MeasurementStorage';
 import { getPillsForProfile } from './PillStorage';
 import { getActiveProfileId, getProfiles } from './ProfileStorage';
 import {
@@ -226,7 +227,13 @@ export const buildDiaryDoctorText = async () => {
   const profiles = await getProfiles();
   const profileName =
     profiles.find(profile => profile.id === profileId)?.name || 'Ben';
-  const entries = await getDiaryEntries();
+  const [entries, measurements] = await Promise.all([
+    getDiaryEntries(),
+    getMeasurements(),
+  ]);
+  const profileMeasurements = measurements.filter(
+    item => !item.profileId || item.profileId === profileId,
+  );
 
   const lines = entries.length
     ? entries.map(entry => {
@@ -242,15 +249,31 @@ export const buildDiaryDoctorText = async () => {
       })
     : ['Kayıt yok.'];
 
+  const measureLines = profileMeasurements.length
+    ? profileMeasurements.map(entry => {
+        const time = entry.createdAt
+          ? formatStamp(new Date(entry.createdAt))
+          : entry.date;
+        const pill = entry.pillName ? ` • ${entry.pillName}` : '';
+        const note = entry.note ? `\n  Not: ${entry.note}` : '';
+        return `• ${time} — ${entry.typeLabel}: ${entry.value} ${entry.unit}${pill}${note}`;
+      })
+    : ['Ölçüm yok.'];
+
   return [
     'İlaç Takibi — doktor günlüğü',
     `Profil: ${profileName}`,
     `Oluşturulma: ${formatStamp()}`,
     `Kayıt sayısı: ${entries.length}`,
+    `Ölçüm sayısı: ${profileMeasurements.length}`,
     '',
     'Notlar ve yan etkiler',
     '────────────────────',
     lines.join('\n\n'),
+    '',
+    'Ölçümler (tansiyon / şeker / kilo)',
+    '────────────────────────────────',
+    measureLines.join('\n\n'),
     '',
     'Bu rapor İlaç Takibi uygulamasından dışa aktarıldı.',
   ].join('\n');

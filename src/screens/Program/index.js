@@ -13,6 +13,7 @@ import {
   getRemindersEnabled,
   setRemindersEnabled,
 } from '../../common/ReminderStorage';
+import { useTheme } from '../../common/ThemeContext';
 import {
   cancelAllReminders,
   ensureNotificationPermissions,
@@ -60,6 +61,7 @@ const Program = () => {
   const [tempMonth, setTempMonth] = useState(1);
   const [tempYear, setTempYear] = useState(new Date().getFullYear());
   const revealKey = useRevealOnFocus();
+  const { colors } = useTheme();
 
   const loadPills = useCallback(async () => {
     const [pills, takenIds, enabled, travelShifts] = await Promise.all([
@@ -201,8 +203,14 @@ const Program = () => {
   const hasPills = sections.length > 0 || asNeededSection?.items?.length > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <StatusBar
+        barStyle={colors.statusBar}
+        backgroundColor={colors.background}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}

@@ -15,12 +15,17 @@ import {
   SCHEMA_VERSION_KEY,
   SYMPTOM_DIARY_KEY,
   TRAVEL_SHIFT_KEY,
+  MEASUREMENTS_KEY,
+  THEME_MODE_KEY,
+  CAREGIVER_ALERTS_KEY,
 } from './storage/keys';
 import { parseJson } from './storage/json';
 import { CURRENT_SCHEMA_VERSION } from './storage/migrations';
+import { readPhotoBase64, writePhotoBase64 } from './PhotoService';
 
 const BACKUP_APP_ID = 'ilacTakip';
 const JSON_MARKER = '---JSON---';
+const PILL_PHOTOS_KEY = 'pill_photos_base64';
 
 const RESTORE_KEYS = [
   PILLS_STORAGE_KEY,
@@ -35,6 +40,9 @@ const RESTORE_KEYS = [
   QUIET_HOURS_END_KEY,
   SYMPTOM_DIARY_KEY,
   TRAVEL_SHIFT_KEY,
+  MEASUREMENTS_KEY,
+  THEME_MODE_KEY,
+  CAREGIVER_ALERTS_KEY,
   SCHEMA_VERSION_KEY,
 ];
 
@@ -126,6 +134,28 @@ export const buildBackupPayload = async () => {
     } catch (error) {
       console.warn('backup key failed:', key, error);
     }
+  }
+
+  try {
+    const pillsRaw = data[PILLS_STORAGE_KEY];
+    const pills = pillsRaw ? parseJson(pillsRaw, []) : [];
+    const photos = {};
+
+    for (const pill of Array.isArray(pills) ? pills : []) {
+      if (!pill?.photoUri) {
+        continue;
+      }
+      const base64 = await readPhotoBase64(pill.photoUri);
+      if (base64) {
+        photos[String(pill.id)] = base64;
+      }
+    }
+
+    if (Object.keys(photos).length) {
+      data[PILL_PHOTOS_KEY] = JSON.stringify(photos);
+    }
+  } catch (error) {
+    console.warn('backup photos failed:', error);
   }
 
   try {
@@ -312,6 +342,36 @@ const applyBackupRecord = async record => {
 
   for (const [key, value] of entries) {
     await AsyncStorage.setItem(key, value);
+  }
+
+  try {
+    const photosRaw = data[PILL_PHOTOS_KEY] ?? record[PILL_PHOTOS_KEY];
+    const photos =
+      typeof photosRaw === 'string'
+        ? parseJson(photosRaw, {})
+        : asRecord(photosRaw) || {};
+    const pillsRaw = await AsyncStorage.getItem(PILLS_STORAGE_KEY);
+    const pills = pillsRaw ? parseJson(pillsRaw, []) : [];
+
+    if (Array.isArray(pills) && Object.keys(photos).length) {
+      const nextPills = [];
+      for (const pill of pills) {
+        const base64 = photos[String(pill.id)];
+        if (!base64) {
+          nextPills.push(pill);
+          continue;
+        }
+        try {
+          const path = await writePhotoBase64(`pill_${pill.id}.jpg`, base64);
+          nextPills.push({ ...pill, photoUri: path || pill.photoUri || '' });
+        } catch (error) {
+          nextPills.push(pill);
+        }
+      }
+      await AsyncStorage.setItem(PILLS_STORAGE_KEY, JSON.stringify(nextPills));
+    }
+  } catch (error) {
+    console.warn('restore photos failed:', error);
   }
 
   return record;

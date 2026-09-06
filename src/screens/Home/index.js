@@ -14,6 +14,7 @@ import { getNudgeState, getScheduledDoseItems } from '../../common/nextDoseHelpe
 import { buildPillSections } from '../../common/pillHelpers';
 import { getAllTravelShifts } from '../../common/TravelShiftStorage';
 import { useProfile } from '../../common/ProfileContext';
+import { useTheme } from '../../common/ThemeContext';
 import useDoseActions from '../../hooks/useDoseActions';
 import useRevealOnFocus from '../../hooks/useRevealOnFocus';
 import AnimatedReveal from '../../components/shared/AnimatedReveal';
@@ -22,19 +23,32 @@ import EmptyState from '../../components/Home/EmptyState';
 import Header from '../../components/Home/Header';
 import LowStockCard from '../../components/Home/LowStockCard';
 import NudgeCard from '../../components/Home/NudgeCard';
+import CaregiverCard from '../../components/Home/CaregiverCard';
 import PillSection from '../../components/Home/PillSection';
 import SectionHeader from '../../components/Home/SectionHeader';
 import TodaySummary from '../../components/Home/TodaySummary';
+import {
+  DEFAULT_PROFILE_ID,
+} from '../../common/ProfileStorage';
+import {
+  dismissCaregiverAlert,
+  getCaregiverDismissKey,
+  getCaregiverSummaries,
+  getDismissedCaregiverKeys,
+  shareCaregiverSummary,
+} from '../../common/CaregiverService';
 import styles, { COLORS } from './styles';
 
 const Home = () => {
   const navigation = useNavigation();
   const today = getTodayDateKey();
   const { activeProfileId } = useProfile();
+  const { colors } = useTheme();
   const [sections, setSections] = useState([]);
   const [asNeededSection, setAsNeededSection] = useState(null);
   const [lowStockPills, setLowStockPills] = useState([]);
   const [intakeMap, setIntakeMap] = useState(null);
+  const [caregiverRows, setCaregiverRows] = useState([]);
 
   const loadPills = useCallback(async () => {
     const [pills, takenIds, nextIntakeMap, travelShifts] = await Promise.all([
@@ -55,6 +69,21 @@ const Home = () => {
     setAsNeededSection(asNeeded);
     setLowStockPills(pills.filter(isLowStock));
     setIntakeMap(nextIntakeMap);
+
+    if (activeProfileId === DEFAULT_PROFILE_ID) {
+      const [rows, dismissed] = await Promise.all([
+        getCaregiverSummaries(today),
+        getDismissedCaregiverKeys(),
+      ]);
+      setCaregiverRows(
+        rows.filter(
+          row =>
+            !dismissed.has(getCaregiverDismissKey(today, row.profileId)),
+        ),
+      );
+    } else {
+      setCaregiverRows([]);
+    }
   }, [today, activeProfileId]);
 
   useFocusEffect(
@@ -104,8 +133,14 @@ const Home = () => {
   const hasPills = totalCount > 0;
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <StatusBar
+        barStyle={colors.statusBar}
+        backgroundColor={colors.background}
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -113,6 +148,21 @@ const Home = () => {
       >
         <AnimatedReveal index={0} animationKey={revealKey} distance={12}>
           <Header />
+        </AnimatedReveal>
+
+        <AnimatedReveal index={1} animationKey={revealKey}>
+          <CaregiverCard
+            rows={caregiverRows}
+            onShare={() => shareCaregiverSummary(today)}
+            onDismiss={async () => {
+              await Promise.all(
+                caregiverRows.map(row =>
+                  dismissCaregiverAlert(today, row.profileId),
+                ),
+              );
+              setCaregiverRows([]);
+            }}
+          />
         </AnimatedReveal>
 
         <AnimatedReveal index={1} animationKey={revealKey}>

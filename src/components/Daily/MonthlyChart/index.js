@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
+import { useTheme } from '../../../common/ThemeContext';
 import styles from './styles';
 
-const barColor = day => {
+const barColor = (day, colors) => {
   if (day.total === 0 || day.compliance == null) {
-    return '#E5E7EB';
+    return colors.border;
   }
 
   if (day.compliance >= 90) {
@@ -23,15 +24,22 @@ const barColor = day => {
 };
 
 const MonthlyChart = ({ days = [], compliance = 0, selectedDate, onSelectDay }) => {
+  const { colors } = useTheme();
+
   if (!days.length) {
     return null;
   }
 
   return (
-    <View style={styles.card}>
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.border },
+      ]}
+    >
       <View style={styles.header}>
-        <Text style={styles.label}>SON 30 GÜN</Text>
-        <Text style={styles.value}>%{compliance}</Text>
+        <Text style={[styles.label, { color: colors.textMuted }]}>SON 30 GÜN</Text>
+        <Text style={[styles.value, { color: colors.text }]}>%{compliance}</Text>
       </View>
       <View style={styles.bars}>
         {days.map(day => {
@@ -53,7 +61,7 @@ const MonthlyChart = ({ days = [], compliance = 0, selectedDate, onSelectDay }) 
                   styles.bar,
                   {
                     height,
-                    backgroundColor: barColor(day),
+                    backgroundColor: barColor(day, colors),
                     opacity: selected ? 1 : 0.85,
                   },
                   selected && styles.barSelected,
@@ -63,8 +71,8 @@ const MonthlyChart = ({ days = [], compliance = 0, selectedDate, onSelectDay }) 
           );
         })}
       </View>
-      <Text style={styles.caption}>
-        Her çubuk bir gün. Dokunarak o güne gidin.
+      <Text style={[styles.caption, { color: colors.textSecondary }]}>
+        Her çubuk bir gün. Dokunarak o güne gidin
       </Text>
     </View>
   );

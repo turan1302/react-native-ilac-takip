@@ -47,6 +47,7 @@ import StatsRow from '../../components/Daily/StatsRow';
 import MissedDoseCard from '../../components/Daily/MissedDoseCard';
 import MonthlyChart from '../../components/Daily/MonthlyChart';
 import { shareWeeklyAdherence } from '../../common/ReportService';
+import { useTheme } from '../../common/ThemeContext';
 import styles, { COLORS } from './styles';
 
 const Daily = () => {
@@ -127,6 +128,7 @@ const Daily = () => {
     loadData,
   );
   const revealKey = useRevealOnFocus();
+  const { colors } = useTheme();
   const listRevealKey = `${revealKey}-${selectedDate}-${debouncedSearch}`;
 
   const takenCount = allItems.filter(item => item.isTaken).length;
@@ -215,17 +217,27 @@ const Daily = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <SafeAreaView
+      style={[styles.container, { backgroundColor: colors.background }]}
+      edges={['top']}
+    >
+      <StatusBar
+        barStyle={colors.statusBar}
+        backgroundColor={colors.background}
+      />
 
       <KeyboardAvoidingView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
       >
         <ScrollView
+          style={{ backgroundColor: colors.background }}
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={[
+            styles.scrollContent,
+            { backgroundColor: colors.background },
+          ]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           onScrollBeginDrag={handleScrollBeginDrag}

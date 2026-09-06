@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, Alert, Image } from 'react-native';
 import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import DoseActions from '../../shared/DoseActions';
 import { getMealRelationLabel } from '../../../common/pillFormConstants';
@@ -10,7 +10,8 @@ import {
 } from '../../../common/scheduleAdjustments';
 import { isPastScheduledTime } from '../../../common/inAppNotificationHelpers';
 import { getTodayDateKey } from '../../../common/IntakeStorage';
-import styles, { COLORS } from './styles';
+import { useTheme } from '../../../common/ThemeContext';
+import styles from './styles';
 
 const MedCard = ({
   item,
@@ -22,6 +23,7 @@ const MedCard = ({
   onPressEdit,
   dateKey,
 }) => {
+  const { colors } = useTheme();
   const meal = getMealRelationLabel(item.pill?.mealRelation);
   const shownTime = getDoseDisplayTime(item);
   const detail = item.asNeeded
@@ -33,45 +35,83 @@ const MedCard = ({
     !item.isTaken &&
     isPastScheduledTime(shownTime, dateKey || getTodayDateKey());
   const missedAdvice = overdue ? getMissedAdviceText(item.pill) : '';
+  const photoUri = item.pill?.photoUri;
 
   return (
-    <View style={[styles.medCard, item.isTaken && styles.medCardTaken]}>
+    <View
+      style={[
+        styles.medCard,
+        {
+          backgroundColor: colors.card,
+          borderColor: colors.border,
+        },
+        item.isTaken && { opacity: 0.85 },
+      ]}
+    >
       <TouchableOpacity
         style={styles.medCardPressable}
         onPress={() => onPressEdit(item)}
         activeOpacity={0.7}
       >
-        <View style={styles.medCardAccent} />
+        <View
+          style={[styles.medCardAccent, { backgroundColor: colors.primary }]}
+        />
         <View
           style={[
             styles.medIconWrapper,
-            item.isTaken && styles.medIconWrapperTaken,
+            { backgroundColor: colors.iconBg },
+            item.isTaken && { backgroundColor: colors.primarySoft },
           ]}
         >
-          <MaterialCommunityIcons
-            name={item.icon}
-            size={24}
-            color={item.isTaken ? COLORS.textMuted : COLORS.primary}
-          />
+          {photoUri ? (
+            <Image
+              source={{ uri: photoUri }}
+              style={{ width: 48, height: 48, borderRadius: 12 }}
+            />
+          ) : (
+            <MaterialCommunityIcons
+              name={item.icon}
+              size={24}
+              color={item.isTaken ? colors.textMuted : colors.primary}
+            />
+          )}
         </View>
         <View style={styles.medInfo}>
-          <Text style={[styles.medName, item.isTaken && styles.medNameTaken]}>
+          <Text
+            style={[
+              styles.medName,
+              { color: colors.text },
+              item.isTaken && { color: colors.textMuted },
+            ]}
+          >
             {item.name}
           </Text>
-          <Text style={[styles.medDetail, item.isTaken && styles.medDetailTaken]}>
+          <Text
+            style={[
+              styles.medDetail,
+              { color: colors.textSecondary },
+              item.isTaken && { color: colors.textMuted },
+            ]}
+          >
             {detail}
           </Text>
           {stockLabel ? (
-            <Text style={styles.stockWarning}>{stockLabel}</Text>
+            <Text style={[styles.stockWarning, { color: colors.warning }]}>
+              {stockLabel}
+            </Text>
           ) : null}
           {missedAdvice ? (
-            <Text style={styles.missedAdvice}>{missedAdvice}</Text>
+            <Text style={[styles.missedAdvice, { color: colors.warning }]}>
+              {missedAdvice}
+            </Text>
           ) : null}
           {item.pill.prospectus ? (
             <TouchableOpacity
               onPress={() => Alert.alert('Prospektüs', item.pill.prospectus)}
             >
-              <Text style={styles.prospectusLink}>Prospektüs</Text>
+              <Text style={[styles.prospectusLink, { color: colors.primary }]}>
+                Prospektüs
+              </Text>
             </TouchableOpacity>
           ) : null}
         </View>

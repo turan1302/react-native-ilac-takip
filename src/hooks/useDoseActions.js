@@ -1,10 +1,19 @@
-import { Alert } from 'react-native';
+import { Alert, InteractionManager } from 'react-native';
 import { setPillIntakeStatus } from '../common/IntakeStorage';
 import {
   notifyLowStockIfNeeded,
   rescheduleAllReminders,
   scheduleSnoozeReminder,
 } from '../common/NotificationService';
+import { navigationRef } from '../common/NavigationService';
+
+const deferReschedule = () => {
+  InteractionManager.runAfterInteractions(() => {
+    rescheduleAllReminders().catch(error => {
+      console.warn('rescheduleAllReminders failed:', error);
+    });
+  });
+};
 
 const useDoseActions = (dateKey, reload) => {
   const takeDose = async item => {
@@ -14,7 +23,27 @@ const useDoseActions = (dateKey, reload) => {
     });
     await notifyLowStockIfNeeded(item.pill);
     await reload();
-    rescheduleAllReminders();
+    deferReschedule();
+
+    Alert.alert(
+      'Ölçüm ekle?',
+      `${item.name} alındı. Ölçüm kaydı bırakmak ister misiniz?`,
+      [
+        { text: 'Hayır', style: 'cancel' },
+        {
+          text: 'Ölçüm yaz',
+          onPress: () => {
+            navigationRef.current?.navigate('WelcomeNavigator', {
+              screen: 'SettingsNavigator',
+              params: {
+                screen: 'Measurements',
+                params: { pill: item.pill },
+              },
+            });
+          },
+        },
+      ],
+    );
   };
 
   const skipDose = async item => {
@@ -23,7 +52,7 @@ const useDoseActions = (dateKey, reload) => {
       time: item.time || '',
     });
     await reload();
-    rescheduleAllReminders();
+    deferReschedule();
   };
 
   const snoozeDose = item => {
@@ -38,7 +67,7 @@ const useDoseActions = (dateKey, reload) => {
           });
           await scheduleSnoozeReminder(item.pill, item.time, 10);
           await reload();
-          rescheduleAllReminders();
+          deferReschedule();
         },
       },
       {
@@ -51,7 +80,7 @@ const useDoseActions = (dateKey, reload) => {
           });
           await scheduleSnoozeReminder(item.pill, item.time, 60);
           await reload();
-          rescheduleAllReminders();
+          deferReschedule();
         },
       },
       { text: 'Vazgeç', style: 'cancel' },
