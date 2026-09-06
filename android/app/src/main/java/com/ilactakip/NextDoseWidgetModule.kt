@@ -192,16 +192,31 @@ class NextDoseWidgetModule(private val reactContext: ReactApplicationContext) :
 
     pickPromise = promise
     pickMode = "image"
+    // Sistem fotoğraf seçici — READ_MEDIA_IMAGES izni gerekmez
     val intent =
-      Intent(Intent.ACTION_PICK, MediaStore.Images.Media.EXTERNAL_CONTENT_URI).apply {
-        type = "image/*"
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+        Intent(MediaStore.ACTION_PICK_IMAGES).apply { type = "image/*" }
+      } else {
+        Intent(Intent.ACTION_GET_CONTENT).apply {
+          type = "image/*"
+          addCategory(Intent.CATEGORY_OPENABLE)
+        }
       }
 
     try {
       activity.startActivityForResult(intent, PICK_IMAGE)
     } catch (error: Exception) {
-      pickPromise = null
-      promise.reject("PICK_FAILED", error)
+      try {
+        val fallback =
+          Intent(Intent.ACTION_GET_CONTENT).apply {
+            type = "image/*"
+            addCategory(Intent.CATEGORY_OPENABLE)
+          }
+        activity.startActivityForResult(fallback, PICK_IMAGE)
+      } catch (fallbackError: Exception) {
+        pickPromise = null
+        promise.reject("PICK_FAILED", fallbackError)
+      }
     }
   }
 

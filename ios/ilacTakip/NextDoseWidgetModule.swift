@@ -323,7 +323,7 @@ class NextDoseWidgetModule: NSObject {
         return
       }
       let url = try Self.photoDirectory().appendingPathComponent(name)
-      try data.write(to: url, atomically: true)
+      try data.write(to: url, options: .atomic)
       resolve("file://\(url.path)")
     } catch {
       reject("WRITE_IMAGE_FAILED", error.localizedDescription, error)
@@ -341,7 +341,7 @@ class NextDoseWidgetModule: NSObject {
     }
     let name = "pill_\(Int(Date().timeIntervalSince1970)).jpg"
     let url = try photoDirectory().appendingPathComponent(name)
-    try data.write(to: url, atomically: true)
+    try data.write(to: url, options: .atomic)
     return [
       "path": "file://\(url.path)",
       "base64": data.base64EncodedString(),

@@ -24,7 +24,7 @@ const PhotoField = ({ photoUri, onChange }) => {
       if (!/cancel/i.test(String(error?.code || error?.message || ''))) {
         Alert.alert(
           'Fotoğraf seçilemedi',
-          'Galeri izni gerekir. Ayarlardan izin verip tekrar deneyin.',
+          'Görsel seçici açılamadı. Tekrar deneyin',
         );
       }
     } finally {
